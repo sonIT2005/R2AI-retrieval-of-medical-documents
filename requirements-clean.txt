@@ -1,0 +1,9 @@
+# Môi trường làm sạch / crawl (conda base, Python 3.14)
+trafilatura==2.3.1
+zstandard==0.25.0
+lxml==6.1.3
+curl_cffi==0.16.3
+pyarrow==25.0.1
+numpy==2.5.3
+pandas==3.0.6
+tqdm==4.68.2

@@ -1,0 +1,13 @@
+# Chặn tất cả, chỉ cho phép code của cuộc thi.
+# Dữ liệu (~75GB, giấy phép CC BY-NC) và các bài luyện khác trong thư mục này KHÔNG đưa lên.
+*
+!.gitignore
+!README.md
+!requirements-*.txt
+!clean_corpus.py
+!embed_corpus.py
+!search_docs.py
+!translate_queries.py
+!make_submission.py
+!find_missing.py
+!crawl_missing2.py

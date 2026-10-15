@@ -1,0 +1,11 @@
+# Môi trường embedding / tìm kiếm / nộp bài (conda env "vibiomir", Python 3.11, GPU CUDA 12.8)
+#   pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+#   pip install -r requirements-search.txt
+sentence-transformers==6.1.0
+numpy==2.4.6
+pandas==3.0.6
+pyarrow==26.0.0
+scipy==1.17.1
+scikit-learn==1.9.1
+jieba==0.42.1
+tqdm==4.70.1
