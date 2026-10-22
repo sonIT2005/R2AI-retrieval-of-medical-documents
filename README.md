@@ -63,6 +63,7 @@ ZIP chứa **đúng 1 file** `.json` (không thư mục con) → leaderboard.aig
 | 10 Việt + 5 Trung + 5 Anh (20 tài liệu) | 0,114 | 0,030 | 0,0724 |
 | 20 Trung | 0,061 | 0,046 | 0,0536 |
 | 20 Anh | 0 | 0 | 0 |
+| 40 Việt + 50 Trung + 10 Anh (100 tài liệu) | 0,238 | 0,084 | **0,1606** |
 
 Nhận xét:
 - Đáp án rất lớn: trung vị **60 tài liệu/câu** (tối đa 190), ~1 chunk đáp án/tài liệu → cần nộp nhiều tài liệu.

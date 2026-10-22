@@ -11,3 +11,7 @@
 !make_submission.py
 !find_missing.py
 !crawl_missing2.py
+# Bản dịch câu hỏi (~1MB, mất ~1,5h GPU để tạo lại) — dùng chung cho cả đội
+!results/
+results/*
+!results/queries_translated.jsonl
