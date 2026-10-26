@@ -50,7 +50,16 @@ RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "dense_vi_en": ("dense", "vi", "en"),
     "dense_zh_zh": ("dense", "zh", "zh"),
     "dense_en_en": ("dense", "en", "en"),
+    # như dense_vi_vi nhưng điểm = max(cos đầu bài, cos các cửa sổ phần sau trong emb_tail/) — cần chạy embed_tail.py
+    "dense_vi_vimax": ("dense", "vi", "vi"),
+    # sinh bởi prf.py (Rocchio trên vector) — chỉ dùng khi gộp, không tự chạy
+    "dense_vi_viprf": ("prf", "vi", "vi"),
+    "dense_vi_zhprf": ("prf", "vi", "zh"),
+    # sinh bởi hyde.py (câu hỏi + đoạn trả lời giả định của Qwen3-8B) — chỉ dùng khi gộp, không tự chạy
+    "dense_hyde_vi": ("hyde", "vi", "vi"),
+    "dense_hyde_zh": ("hyde", "vi", "zh"),
 }
+EMB_TAIL = "emb_tail"
 
 _hv = dict(n_features=N_FEATURES, alternate_sign=False, norm=None, dtype=np.float32)
 VEC = {
@@ -199,21 +208,42 @@ def run_dense(names, qs, doc_group):
         _, qlang, g = RUNS[name]
         rows = np.where(grp == g)[0]
         Eg = E.index_select(0, torch.from_numpy(rows).to("cuda"))
+        T = pos = None
+        if name.endswith("max"):
+            T, pos = load_tail(ids[rows], torch)
         all_ids, all_scores = [], []
         for i in range(0, len(qv[qlang]), 64):
-            s, top = torch.topk(qv[qlang][i:i + 64] @ Eg.T, POOL, dim=1)
+            S = qv[qlang][i:i + 64] @ Eg.T
+            if T is not None:  # điểm tài liệu = max(đầu bài, các cửa sổ phần sau)
+                S = S.float().scatter_reduce(1, pos.expand(S.shape[0], -1), (qv[qlang][i:i + 64] @ T.T).float(),
+                                             reduce="amax")
+            s, top = torch.topk(S, POOL, dim=1)
             for srow, irow in zip(s.float().cpu().numpy(), top.cpu().numpy()):
                 all_ids.append(ids[rows[irow]])
                 all_scores.append(srow)
         save_run(name, qs[qlang], all_ids, all_scores)
         print(f"  {name}: xong ({len(rows):,} tài liệu nhóm {g})")
-        del Eg
+        del Eg, T, pos
         torch.cuda.empty_cache()
+
+
+def load_tail(row_ids, torch):
+    """Vector các cửa sổ phần sau (emb_tail/) + vị trí tài liệu tương ứng trong row_ids."""
+    files = sorted(glob.glob(f"{EMB_TAIL}/*.parquet.npy"))
+    vecs = np.concatenate([np.load(f) for f in files])
+    tids = np.concatenate([np.load(f[:-4] + ".ids.npy") for f in files])
+    order = np.argsort(row_ids)
+    j = np.searchsorted(row_ids[order], tids).clip(0, len(row_ids) - 1)
+    ok = row_ids[order][j] == tids  # bỏ cửa sổ của tài liệu không thuộc nhóm (an toàn)
+    print(f"  Phần sau: {ok.sum():,} cửa sổ của {len(np.unique(tids[ok])):,} tài liệu")
+    T = torch.from_numpy(vecs[ok]).to("cuda")
+    pos = torch.from_numpy(order[j[ok]]).to("cuda").unsqueeze(0)
+    return T, pos
 
 
 # ── Gộp: RRF trong từng ngôn ngữ, rồi ghép theo hạn mức ──────────────────
 
-def fuse(qs, quota, weights, out_name=None):
+def fuse(qs, quota, weights, out_name=None, rrf_k=RRF_K):
     have = [n for n in RUNS if os.path.exists(f"{OUT}/run_{n}.jsonl") and weights.get(n, 1.0) > 0]
     runs = {n: load_run(n) for n in have}
     by_group = {g: [n for n in have if RUNS[n][2] == g] for g in GROUPS}
@@ -230,7 +260,7 @@ def fuse(qs, quota, weights, out_name=None):
                 for n in by_group[g]:
                     w = weights.get(n, 1.0)
                     for rank, d in enumerate(runs[n].get(qid, [])):
-                        score[d] = score.get(d, 0.0) + w / (RRF_K + rank + 1)
+                        score[d] = score.get(d, 0.0) + w / (rrf_k + rank + 1)
                 best = sorted(score.items(), key=lambda x: -x[1])[:quota[g]]
                 merged += [((j + 1) / quota[g], gi, d, s, g) for j, (d, s) in enumerate(best)]
             merged.sort()
@@ -264,6 +294,8 @@ def main():
     ap.add_argument("--weights", default=DEFAULT_WEIGHTS,
                     help="Trọng số lượt tìm khi gộp, vd 'bm25_zh=0.3,bm25_en=0' (0 = bỏ hẳn; mặc định 1)")
     ap.add_argument("--out", default=None, help="Tên file kết quả gộp (không cần .jsonl)")
+    ap.add_argument("--runs", default=None, help="Chỉ chạy các lượt này, vd 'dense_vi_vimax' (mặc định: tất cả)")
+    ap.add_argument("--rrf-k", type=int, default=RRF_K, help="Hằng số k của RRF khi gộp (mặc định 60)")
     args = ap.parse_args()
     quota = dict(zip(GROUPS, map(int, args.quota.split(","))))
     weights = {k: float(v) for k, v in (kv.split("=") for kv in args.weights.split(",") if kv)}
@@ -273,12 +305,14 @@ def main():
     if not args.only_fuse:
         doc_group, host_group = load_meta()
         print("Tài liệu theo nhóm:", doc_group.value_counts().to_dict())
-        todo = [n for n, (_, ql, _) in RUNS.items() if ql in qs]
+        todo = [n for n, (_, ql, _) in RUNS.items() if ql in qs
+                and (not n.endswith("max") or glob.glob(f"{EMB_TAIL}/*.ids.npy"))
+                and (not args.runs or n in args.runs.split(","))]
         for n in todo:
             if RUNS[n][0] == "bm25":
                 run_bm25(n, qs[RUNS[n][1]], host_group)
         run_dense([n for n in todo if RUNS[n][0] == "dense"], qs, doc_group)
-    show_examples(fuse(qs, quota, weights, args.out))
+    show_examples(fuse(qs, quota, weights, args.out, args.rrf_k))
 
 
 if __name__ == "__main__":

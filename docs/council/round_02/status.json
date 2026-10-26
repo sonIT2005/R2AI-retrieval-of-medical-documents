@@ -1,0 +1,175 @@
+{
+  "round": "round_02",
+  "time": "2026-10-23T00:30:02",
+  "rounds": 2,
+  "members": {
+    "openai": {
+      "label": "M2",
+      "model": "openai/gpt-6-luna",
+      "role": "plan_critic"
+    },
+    "glm": {
+      "label": "M4",
+      "model": "z-ai/glm-5.3",
+      "role": "simplifier"
+    },
+    "gemini": {
+      "label": "M1",
+      "model": "google/gemini-4-argon",
+      "role": "pragmatist"
+    },
+    "kimi": {
+      "label": "M3",
+      "model": "moonshotai/kimi-k3",
+      "role": "alternative"
+    }
+  },
+  "calls": [
+    {
+      "round": 1,
+      "provider": "kimi",
+      "ok": true,
+      "seconds": 85.5,
+      "usage": {
+        "prompt_tokens": 30456,
+        "completion_tokens": 4816
+      },
+      "searches": 0,
+      "sources": 15
+    },
+    {
+      "round": 1,
+      "provider": "openai",
+      "ok": true,
+      "seconds": 145.7,
+      "usage": {
+        "prompt_tokens": 24353,
+        "completion_tokens": 9297
+      },
+      "searches": 0,
+      "sources": 4
+    },
+    {
+      "round": 1,
+      "provider": "glm",
+      "ok": true,
+      "seconds": 224.0,
+      "usage": {
+        "prompt_tokens": 34749,
+        "completion_tokens": 33964
+      },
+      "searches": 0,
+      "sources": 15
+    },
+    {
+      "round": 1,
+      "provider": "gemini",
+      "ok": true,
+      "seconds": 287.5,
+      "usage": {
+        "prompt_tokens": 3013,
+        "completion_tokens": 22777
+      },
+      "searches": 0,
+      "sources": 12
+    },
+    {
+      "round": 2,
+      "provider": "glm",
+      "ok": true,
+      "seconds": 62.8,
+      "usage": {
+        "prompt_tokens": 15605,
+        "completion_tokens": 12342
+      },
+      "searches": 0,
+      "sources": 0
+    },
+    {
+      "round": 2,
+      "provider": "openai",
+      "ok": true,
+      "seconds": 86.5,
+      "usage": {
+        "prompt_tokens": 15620,
+        "completion_tokens": 7829
+      },
+      "searches": 0,
+      "sources": 0
+    },
+    {
+      "round": 2,
+      "provider": "kimi",
+      "ok": true,
+      "seconds": 88.8,
+      "usage": {
+        "prompt_tokens": 22459,
+        "completion_tokens": 3711
+      },
+      "searches": 0,
+      "sources": 0
+    },
+    {
+      "round": 2,
+      "provider": "gemini",
+      "ok": true,
+      "seconds": 124.7,
+      "usage": {
+        "prompt_tokens": 16424,
+        "completion_tokens": 9506
+      },
+      "searches": 0,
+      "sources": 0
+    }
+  ],
+  "ranking": [
+    {
+      "id": "M4-A",
+      "points": 8,
+      "voters": [
+        "M2",
+        "M3",
+        "M1"
+      ]
+    },
+    {
+      "id": "M1-A",
+      "points": 7,
+      "voters": [
+        "M4",
+        "M2",
+        "M3"
+      ]
+    },
+    {
+      "id": "M2-C",
+      "points": 2,
+      "voters": [
+        "M1"
+      ]
+    },
+    {
+      "id": "M3-A",
+      "points": 2,
+      "voters": [
+        "M4"
+      ]
+    },
+    {
+      "id": "M4-B",
+      "points": 2,
+      "voters": [
+        "M2"
+      ]
+    },
+    {
+      "id": "M1-B",
+      "points": 1,
+      "voters": [
+        "M4"
+      ]
+    }
+  ],
+  "searches_total": 0,
+  "sources_total": 46
+}

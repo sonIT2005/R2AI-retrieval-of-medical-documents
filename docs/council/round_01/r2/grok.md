@@ -1,0 +1,35 @@
+# M1 = grok (x-ai/grok-4.7) — vai: red_team — vòng 2
+
+## 1. Nhận xét từng thành viên
+- M2: điểm mạnh là buộc phải đo nhiễu LB và chỉ ra mâu thuẫn near-duplicate (dedup làm mất slot) trước khi diễn giải Δ nhỏ. | lỗ hổng: M2-A giả định file chấm có gold doc_id từng câu rồi tối ưu trên đó — brief chỉ cho thống kê tổng quát, và đây sát “cấm dò đáp án”; nếu làm, public bị overfit và private có thể bị huỷ. CLEF eHealth chỉ chứng minh pooling nói chung, không chứng minh nhãn cuộc thi này là pool BM25.
+- M3: điểm mạnh là rút F2 = 5H/(4G+N) và ngưỡng biên p > F2/5, khớp bảng LB (baseline ~0,564 so với 0,559 — lệch nhỏ đúng kiểu macro, không phải sai công thức); từ đó quota cố định là sai, và >1 chunk/tài liệu làm tăng N_c mà không tăng H_c nếu G_c ≈ 1. | lỗ hổng: câu “đang nộp quá ít / cắt Trung là sai” dùng P trung bình, không phải precision biên của ranker hiện tại (H≈18 ở N≈100, tệ hơn H≈27 của BM25 ở N≈30). P_zh≈0,16 không chứng minh slot Trung thứ 40 có p trên ngưỡng của từng câu. Kỳ vọng +0,25–0,40 giả định chỉ mục đã khớp BTC. Ước |g|≈150–300 token chưa có bằng chứng; nếu |g| dài, timeout LCS tệ hơn nhiều so với 6–7 giờ. Nguồn Yen/Lewis và TREC-11 ủng hộ “xếp theo xác suất rồi cắt ngưỡng”, không ủng hộ đúng số 0,11–0,15 của metric này.
+- M4: điểm mạnh là tách biến sạch (chunk trước, retrieval sau) và tiêu chí giết doc F2 ≤ 0,30. | lỗ hổng: nộp toàn văn / cap 50k token ở bài đầu là rủi ro timeout hoặc reject — Δ=0 khi đó không bác được giả thuyết chunk. Không kiểm HashingVectorizer có phải BM25 thật trước khi kết luận “fusion không phải thủ phạm”. Không có nguồn; thứ tự thì đúng, độ dài chunk thì không an toàn.
+
+## 2. Tôi đổi quan điểm thế nào (giữ / bỏ / sửa gì, vì sao)
+Giữ: fusion/quota đang phá tín hiệu lexical; không tăng 150–200 trên danh sách hiện tại; reranker sau khi có ranker P cao; cấm Anh; không đổi chunk và retrieval trong cùng một bài nộp.
+Bỏ: “cấm Trung ở hệ thống cuối”. Bài 20 Trung = 0,0536 nên có hit; Trung chỉ bị cấm trong bài chẩn đoán để tách biến. Cách giữ đúng là xếp hạng toàn cục, không phải quota 40 — đây là lập luận của M3-B, tốt hơn đề xuất cũ của tôi.
+Sửa độ dài chunk: không bắn 8.000 ký tự hoặc toàn văn ở bài đầu (M4-A). Bài đầu L=2.000 rồi 4.000, vì |g| không biết và mẫu số chỉ |g| vẫn đúng nếu span chứa g. Công thức M3 thuyết phục tôi rằng 2–3 chunk/tài liệu chỉ đáng thử nếu bản 1 span dài không nâng R_chunk.
+Sửa diễn giải “nộp quá ít”: chỉ đúng sau khi P@30 của sparse Việt đã cao. Trên ranker P=0,177, đuôi gần như chắc p < F2/5.
+Không nhận M2-A: không dùng doc_id vàng từng câu, không suy ngược nhãn từ nhiều bài nộp.
+
+## 3. Đề xuất cuối (tối đa 3)
+### Đề xuất A: Một span 2k/4k, đóng băng đúng tập tài liệu (dựa trên: M3-A, M4-A)
+- Giả thuyết: R_chunk/R_doc = 0,34 vì cửa sổ 1.000 ký tự không phủ 0,4|g| hoặc text đã lọc rác mất câu vàng; 1 span liên tiếp dài hơn, chưa lowercase/chưa tách âm tiết, sẽ kéo F2_chunk về phía F2_doc. Nếu text crawl không chứa g, tăng L không giúp.
+- Cách làm cụ thể: xác nhận từ log số doc thật của bài 0,1606 (brief ghi “giả định” 60/40/0). Giữ nguyên doc_id, mỗi doc đúng 1 chunk, bỏ lọc dòng rác, cắt biên câu. Không nộp bản đã hash/token hoá. Trước khi nộp: DP LCS Python 3.7 trên 20 cặp xấu nhất (L × giả định |g| = 200 và 2.000 token). Chunk.doc_id phải nằm trong relevant_docs, doc_id không trùng. Không gửi toàn văn ở lượt này.
+- Thí nghiệm kiểm chứng + tiêu chí bác bỏ: 2 bài, cùng ngày, chỉ đổi L ∈ {2.000, 4.000}. Bác bỏ “độ dài là thủ phạm” nếu cả hai có R_chunk/R_doc ≤ 0,45 và ΔF2_chunk < 0,03 so với 0,084. Nếu điểm chunk = 0 hoặc reject trong khi doc khớp bài cũ → timeout/format, không được diễn giải là sai giả thuyết; dừng, không tăng L. Nếu 4.000 không hơn 2.000 quá 0,02 thì dừng sweep độ dài. Bác bỏ “cấm >1 chunk” chỉ bằng 1 bài sau: 3 cửa sổ 1.000 ký tự, cùng tập doc; chỉ đổi chiến lược nếu F2_chunk cao hơn bản 1 span ít nhất 0,03.
+- Kỳ vọng: <+0,04 đến +0,10 tổng> | Tự tin: vừa | Chi phí: S
+
+### Đề xuất B: Sparse Việt thuần, sau khi xác minh có phải BM25 (dựa trên: M3-B, M4-B)
+- Giả thuyết: RRF + quota đẩy hit ngoài pool lên trên hit lexical. Việc này chỉ đọc được nếu bài nộp không đồng thời đổi chunk, và chỉ kết luận “chỉ mục ≠ BTC” nếu scorer thật sự là BM25 có IDF. HashingVectorizer không có IDF và có collision — nếu log đúng là lớp đó, top-30 P thấp không bác giả thuyết nhãn bám BM25.
+- Cách làm cụ thể: offline, không tốn bài nộp: (i) xác nhận lớp chấm trong code; (ii) thử nghiệm 50 tài liệu — từ hiếm phải đổi thứ hạng mạnh hơn từ “là” lặp lại, nếu không thì không phải BM25; (iii) đếm doc_id nộp không có trong file URL BTC. Rồi 2 bài, chunk đóng băng theo bài 0,1606 (hoặc theo A nếu A đã xong — không cả hai cùng lúc): chỉ bm25_vi đã cache, k=30 và k=60, không dense, không Trung, không Anh. Từ P,R suy H=P·N, precision biên giữa 30 và 60. Chỉ nối Trung ở bài thứ ba nếu P@30 ≥ 0,60: một danh sách điểm đã chuẩn hoá vi+zh, không quota, cùng N=60, chunk vẫn đóng băng.
+- Thí nghiệm kiểm chứng + tiêu chí bác bỏ: bác “fusion là thủ phạm chính” nếu k=30 có P_doc < 0,30 và F2_doc < 0,28. Nếu P@30 ≥ 0,60 nhưng precision biên 30→60 < 0,12 thì không được tăng N (ngưỡng M3, áp trên ranker đã sửa, không áp trên fusion cũ). Nếu P@30 < 0,60 và bước (ii) cho thấy không có IDF → không sửa fusion thêm; chuyển đề xuất C. Nếu đã là BM25 thật mà P@30 vẫn < 0,60 → lỗi text/cắt 10k, cũng chuyển C. Bài trộn Trung bị bác nếu không hơn bài Việt thuần cùng N ít nhất 0,02.
+- Kỳ vọng: <+0,08 đến +0,18 nếu P@30 ≥ 0,60> | Tự tin: vừa | Chi phí: S
+
+### Đề xuất C: Chỉ mục BM25 thật + trần crawl, chỉ khi B bị bác (dựa trên: M4-C, M3-B)
+- Giả thuyết: nếu B thất bại vì scorer/cắt 10.000 ký tự, BM25Okapi hoặc BM25S trên full text Việt, k=40, sẽ nâng P@30. Nếu cả tokenizer vẫn thấp, trần là crawl/extract (thiếu youmed/laodong, trafilatura bỏ đoạn), không phải công thức — lúc đó reranker vô ích.
+- Cách làm cụ thể: song song, trước bài nộp: grep 50 câu public trong index Việt (chuỗi nguyên văn, không dịch); MinHash shingle 5-gram trên top-40, đo kích thước cụm. Không dedup và không expansion cho đến khi cụm trung bình ≥ 1,5 và ≥ 20% top-40 có bản sao — hai hướng M2-B và M3-C loại nhau, chưa đủ chứng để đốt submission. Nếu grep < 50% câu có mặt, thử html2txt/favor_recall trên 30 URL rồi grep lại, vẫn chưa nộp. Nếu grep ≥ 90% và doc_id sạch: index full text Việt, không HashingVectorizer, không cắt 10k; hai bài k=40, token âm tiết rồi token từ. Chunk = cấu hình thắng của A, không đổi thêm.
+- Thí nghiệm kiểm chứng + tiêu chí bác bỏ: bác “sai hàm/cắt độ dài” nếu cả hai tokenizer có P@30 < 0,35 và F2_doc không hơn bài B quá 0,03. Bác “trần crawl” nếu ≥ 90% câu public xuất hiện nguyên văn và < 2% doc_id lạ — khi đó dừng recrawl. Cụm < 1,5 thì bỏ cả dedup lẫn expansion, không nộp. Không chạy reranker cho đến khi P@30 ≥ 0,60 và F2_chunk đã đi cùng hướng với F2_doc. Giữ 1/5 slot private cho bản không đuổi pool BM25 public; không dùng private để tiếp tục dò.
+- Kỳ vọng: <+0,10 đến +0,20 so với 0,1606 nếu B thất bại vì sparse hỏng; +0 nếu grep đã đạt 90%> | Tự tin: vừa | Chi phí: M
+
+## 4. Bình chọn
+VOTES: M3-A, M3-B, M4-B
