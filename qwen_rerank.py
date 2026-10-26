@@ -93,6 +93,7 @@ def main():
                     help="head = tiêu đề + đầu bài; passage = tiêu đề + đoạn khớp nhất (như chunk được nộp)")
     ap.add_argument("--passage-chars", type=int, default=2000, help="Cắt đoạn văn tối đa N ký tự")
     ap.add_argument("--tag", default=None, help="Tiền tố tên file kết quả (mặc định q3rr/q3rrf)")
+    ap.add_argument("--shard", type=int, default=40000, help="Số cặp mỗi khối tách token + chấm (giới hạn RAM)")
     args = ap.parse_args()
     if args.model == MODEL and args.text == "head":
         cache_path, tag_rr = CACHE, args.tag or "q3"
@@ -136,6 +137,7 @@ def main():
                      for r in rows]
         if any(r["doc_ids"] for r in need_rows):
             passages = best_passages(need_rows, docs, qtext)
+            __import__("gc").collect()  # nhả bộ nhớ đệm vector đoạn (~4 GB) trước khi nạp reranker
     texts, keys = [], []
     for r in rows:
         for d, lang in zip(r["doc_ids"], r["langs"]):
@@ -163,32 +165,35 @@ def main():
         yes, no = tok.convert_tokens_to_ids("yes"), tok.convert_tokens_to_ids("no")
         # chỉ 2 hàng của lm_head ở token cuối — logits đủ từ vựng ở mọi vị trí tốn ~7 GB mỗi lô
         head_w = model.get_output_embeddings().weight[[no, yes]]
-        ids = tok(texts, add_special_tokens=False)["input_ids"]
-        order = np.argsort([len(x) for x in ids])  # gom cặp cùng độ dài → ít padding
-        batches, cur = [], []
-        for i in order:
-            if cur and (len(cur) + 1) * len(ids[i]) > args.tokens_per_batch:
-                batches.append(cur)
-                cur = []
-            cur.append(i)
-        batches.append(cur)
-        t0, last_save = time.time(), time.time()
-        for b in tqdm(batches[::-1], desc="Chấm (lô dài trước)"):  # lô dài nhất trước → lỗi thiếu bộ nhớ lộ sớm
-            enc = tok.pad({"input_ids": [ids[i] for i in b]}, padding=True, return_tensors="pt").to("cuda")
-            with torch.no_grad():
-                logits = model.model(**enc).last_hidden_state[:, -1, :] @ head_w.T
-            p = torch.log_softmax(logits.float(), 1)[:, 1].exp()
-            for i, s in zip(b, p.cpu().numpy()):
-                cache[keys[i]] = float(s)
-            if time.time() - last_save > 600:
-                pickle.dump(cache, open(CACHE_PATH + ".tmp", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-                os.replace(CACHE_PATH + ".tmp", CACHE_PATH)
-                last_save = time.time()
-        pickle.dump(cache, open(CACHE_PATH + ".tmp", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-        os.replace(CACHE_PATH + ".tmp", CACHE_PATH)
+        # Tách token + chấm THEO KHỐI: tách token 420K cặp một lần ≈ 170 triệu số nguyên Python → hết 29 GB RAM (26/10)
+        t0, n_tok = time.time(), 0
+        pbar = tqdm(total=len(texts), desc="Chấm", unit="cặp", smoothing=0.05)
+        for s0 in range(0, len(texts), args.shard):
+            ids = tok(texts[s0:s0 + args.shard], add_special_tokens=False)["input_ids"]
+            n_tok += sum(map(len, ids))
+            order = np.argsort([len(x) for x in ids])  # gom cặp cùng độ dài → ít padding
+            batches, cur = [], []
+            for i in order:
+                if cur and (len(cur) + 1) * len(ids[i]) > args.tokens_per_batch:
+                    batches.append(cur)
+                    cur = []
+                cur.append(i)
+            batches.append(cur)
+            for b in batches[::-1]:  # lô dài nhất trước → lỗi thiếu VRAM lộ sớm
+                enc = tok.pad({"input_ids": [ids[i] for i in b]}, padding=True, return_tensors="pt").to("cuda")
+                with torch.no_grad():
+                    logits = model.model(**enc).last_hidden_state[:, -1, :] @ head_w.T
+                p = torch.log_softmax(logits.float(), 1)[:, 1].exp()
+                for i, s in zip(b, p.cpu().numpy()):
+                    cache[keys[s0 + i]] = float(s)
+                pbar.update(len(b))
+            del ids, batches
+            pickle.dump(cache, open(CACHE_PATH + ".tmp", "wb"), protocol=pickle.HIGHEST_PROTOCOL)
+            os.replace(CACHE_PATH + ".tmp", CACHE_PATH)  # lưu sau mỗi khối → dừng giữa chừng mất tối đa 1 khối
+        pbar.close()
         dt = time.time() - t0
         print(f"  {len(texts):,} cặp trong {dt / 60:.1f} phút = {len(texts) / dt:.1f} cặp/giây, "
-              f"TB {np.mean([len(x) for x in ids]):.0f} token/cặp")
+              f"TB {n_tok / len(texts):.0f} token/cặp")
 
     base = os.path.basename(args.docs).replace(".jsonl", "")
     keep_all = not any(quota.values())  # --quota 0,0: giữ mọi ứng viên, chỉ đổi thứ tự (để dyn_cut.py cắt sau)
