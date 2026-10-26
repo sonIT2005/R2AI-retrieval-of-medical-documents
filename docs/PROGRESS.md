@@ -39,6 +39,15 @@
   trên trang, mỗi bài một tab mới.
 - Bộ chấm chỉ trả 7 số tổng hợp (FINAL, F2/P/R doc, F2/P/R chunk) — không có chi tiết từng câu.
 
+## Thay đổi 26/10 (Sơn) — đọc trước khi chạy lệnh cũ
+- `search_docs.py`: `DEFAULT_WEIGHTS` = cấu hình tốt nhất (bm25_vi=0.33, bm25_zh=0.3, bm25_en=0) và **tắt** vimax/prf/hyde.
+  `--weights` giờ **ghi đè từng lượt lên mặc định** (trước đây thay thế toàn bộ → lượt không ghi bị về 1).
+  Lệnh cũ có ghi đủ mọi lượt → kết quả không đổi; lệnh cũ bỏ sót lượt nào → lượt đó giờ lấy mặc định thay vì 1.
+- `qwen_rerank.py`: thêm `--model`, `--text passage` (đoạn khớp nhất), `--quota 0,0` (giữ hết, để dyn_cut cắt);
+  bản `*rrf` nay ghi `scores` = điểm RRF (trước ghi điểm reranker → dyn_cut cắt sai thang). Cache 4B + head giữ nguyên.
+- `build_submission.sh`: tự chọn Python (PY / venv Windows / venv Linux / python đang kích hoạt); tham số 7 = chunk-chars (mặc định 4000:400).
+- Hướng dẫn tái tạo bài 0,3193: `docs/HUONG_DAN_TAI_TAO_BEST.md` (việc của Nguyen).
+
 ## Bẫy đã biết (đừng lặp lại)
 - File > 100 MB → lỗi 413 (Cloudflare). lzma-xl ~0,35 MB/suất chunk; chunk cho cả 250 tài liệu = 106 MB (quá).
 - fuse() gộp MỌI results/run_*.jsonl với trọng số 1 → luôn đặt =0 cho lượt không dùng (prf, hyde, vimax).

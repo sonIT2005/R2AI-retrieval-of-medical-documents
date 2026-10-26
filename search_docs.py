@@ -39,7 +39,9 @@ BM25_MAX_CHARS = 10000
 POOL = 300
 RRF_K = 60
 # BM25 trên câu dịch lệch từ vựng với bài gốc (top-10 chỉ trùng ~3% với dense) → trọng số thấp
-DEFAULT_WEIGHTS = "bm25_zh=0.3,bm25_en=0.3"
+DEFAULT_WEIGHTS = ("bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,"  # cấu hình tốt nhất (exp-010/029)
+                   # lượt thử nghiệm đã bác bỏ: fuse() gộp MỌI results/run_*.jsonl có sẵn → mặc định tắt
+                   "dense_vi_vimax=0,dense_vi_viprf=0,dense_vi_zhprf=0,dense_hyde_vi=0,dense_hyde_zh=0")
 
 RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "bm25_vi": ("bm25", "vi", "vi"),
@@ -291,14 +293,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quota", default="10,5,5", help="Số tài liệu mỗi câu cho Việt,Trung,Anh")
     ap.add_argument("--only-fuse", action="store_true", help="Không tìm lại, chỉ gộp từ các lượt đã chạy")
-    ap.add_argument("--weights", default=DEFAULT_WEIGHTS,
-                    help="Trọng số lượt tìm khi gộp, vd 'bm25_zh=0.3,bm25_en=0' (0 = bỏ hẳn; mặc định 1)")
+    ap.add_argument("--weights", default="",
+                    help="Ghi đè trọng số từng lượt lên DEFAULT_WEIGHTS, vd 'bm25_zh=0,dense_hyde_vi=1' "
+                         "(0 = bỏ hẳn; lượt không có trong mặc định = 1)")
     ap.add_argument("--out", default=None, help="Tên file kết quả gộp (không cần .jsonl)")
     ap.add_argument("--runs", default=None, help="Chỉ chạy các lượt này, vd 'dense_vi_vimax' (mặc định: tất cả)")
     ap.add_argument("--rrf-k", type=int, default=RRF_K, help="Hằng số k của RRF khi gộp (mặc định 60)")
     args = ap.parse_args()
     quota = dict(zip(GROUPS, map(int, args.quota.split(","))))
-    weights = {k: float(v) for k, v in (kv.split("=") for kv in args.weights.split(",") if kv)}
+    parse = lambda s: {k: float(v) for k, v in (kv.split("=") for kv in s.split(",") if kv)}
+    weights = {**parse(DEFAULT_WEIGHTS), **parse(args.weights)}  # --weights ghi đè TỪNG lượt lên mặc định
 
     qs = load_queries()
     print(f"{len(qs['vi'])} câu hỏi | ngôn ngữ câu hỏi sẵn có: {', '.join(qs)}")

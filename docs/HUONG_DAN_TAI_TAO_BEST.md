@@ -95,8 +95,8 @@ Chỉ khi in ra `KHOP` mới sang bước sau.
 
 ## 4. Việc sau (không làm trong lượt này)
 
-Sơn sẽ làm, hoặc bàn tiếp sau khi xong mục trên:
+Sơn đã làm (26/10), xem chi tiết ở mục "Thay đổi 26/10" trong `docs/PROGRESS.md`:
 
-- **Trọng số mặc định của `search_docs.py`** (dòng 42): đặt bằng cấu hình tốt nhất (`bm25_vi=0.33`) và `=0` cho các lượt thử nghiệm (vimax/prf/hyde). Như vậy chạy lệnh mặc định không còn ra kết quả kém hơn mà không ai biết.
-- **`build_submission.sh`**: đang dùng đường dẫn Python kiểu Windows (`.venv_search/Scripts/python.exe`) và cấu hình chunk cũ (`4000:100`), nên chưa chạy được trên Linux và đã lỗi thời.
+- ✅ **Trọng số mặc định của `search_docs.py`** = cấu hình tốt nhất, các lượt thử nghiệm mặc định tắt. **Lưu ý:** `--weights` giờ ghi đè từng lượt lên mặc định, không còn thay thế toàn bộ.
+- ✅ **`build_submission.sh`** chạy được trên cả Windows lẫn Linux, độ dài chunk mặc định `4000:400`.
 - **Hướng cải thiện từ buổi mentor 22/10:** rerank theo **đoạn khớp nhất** thay vì đầu bài (36,6% bài Việt có đoạn khớp nằm sau ký tự 2.000), và gộp thêm một mô hình embedding thứ hai.
