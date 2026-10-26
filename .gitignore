@@ -23,6 +23,10 @@
 !results/
 results/*
 !results/queries_translated.jsonl
+# Bài tốt nhất 0,3369 (exp-041, id 7160): danh sách ứng viên + điểm reranker + danh sách nộp cuối → tái tạo không cần GPU
+!results/D_wide_son.jsonl
+!results/qwen_rerank_cache_q3r06B_passage.pkl
+!results/DC_D_wide_son_q3r06Bprrf_all.jsonl
 
 # Bộ công cụ agent (ai-contest-kit v10): luật cho AI, lệnh, hook, tài liệu tiến độ, hội đồng model
 !AGENTS.md

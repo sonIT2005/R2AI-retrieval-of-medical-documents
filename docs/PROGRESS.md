@@ -8,7 +8,8 @@
 ## Điểm tốt nhất
 | Metric local | LB public | File nộp | Thí nghiệm | Ghi chú |
 |---|---|---|---|---|
-| — | **0,3193** | id 7095 | exp-040 | `dyn_cut.py --docs results/D_wide.jsonl --mean 180 --vi-share 0.7 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl` (chunk cho mọi tài liệu, 83,8 MB) |
+| — | **0,3369** | id 7160 | exp-041 | Máy Sơn, tái tạo đủ từ repo (3 file trong results/ đã commit): `search_docs.py --only-fuse --quota 300,130,0 --out D_wide_son` → `qwen_rerank.py --docs results/D_wide_son.jsonl --pool 250,100 --quota 0,0 --model Qwen/Qwen3-Reranker-0.6B --text passage --tokens-per-batch 48000` (~2,5 giờ; cache có sẵn → vài phút) → `dyn_cut.py --docs results/D_wide_son_q3r06Bprrf_all.jsonl --mean 180 --vi-share 0.7 --lo 80 --hi 400 --out results/DC_D_wide_son_q3r06Bprrf_all.jsonl` → `make_submission.py --docs results/DC_D_wide_son_q3r06Bprrf_all.jsonl --chunk-chars 4000:400 --compress lzma-xl --name sub_D_wide_son_q3r06Bprrf_all` (84,8 MB) |
+| — | 0,3193 | id 7095 | exp-040 | `dyn_cut.py --docs results/D_wide.jsonl --mean 180 --vi-share 0.7 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl` (chunk cho mọi tài liệu, 83,8 MB) |
 | — | 0,3182 | id 7088 | exp-038 | như trên, TB 200 |
 | — | 0,2968 (đang hiện trên bảng) | id 6760 | exp-019 | đổi bài hiển thị: hỏi người dùng trước |
 
