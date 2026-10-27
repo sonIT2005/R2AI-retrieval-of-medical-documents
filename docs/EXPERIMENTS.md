@@ -56,10 +56,12 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-045 | 27/10 | dyn_cut vi-share **0,75** (`sub_son_vs75`) | — | +0,0011 | id 7269: 0,3376 | XÁC NHẬN nhẹ: nhiều Việt hơn có lợi → thử 0,80 | 30076e7 |
 | exp-046 | 27/10 | RRF **k=100** khi gộp (D_wide_son_k100 → dyn_cut TB 180) (`sub_son_k100`) | — | **+0,0035** | id 7270: **0,3400** | XÁC NHẬN: k=100 làm phẳng RRF, bài có hạng khá ở NHIỀU lượt được đẩy lên — BEST; thử k=150/200 + vs 0,75 | 30076e7 |
 | exp-047 | 27/10 | Mục B: thêm **Qwen3-Embedding-0.6B** (Apache-2.0, 06/2025) vào NHÓM TRUNG: `dense_q3e_vi_zh=1, dense_q3e_zh_zh=1` (`sub_son_q3zh`, 85 MB). Mã hoá 236.518 bài Trung 1h16 (40 bài/giây, chậm hơn BGE 2,6×). Top-10 trùng BGE chỉ 12% (vi→zh) / 35% (zh→zh); 37% bài Trung nộp thay đổi. Bác bỏ nếu ≤ nền 0,3365 | — | −0,0011 | id 7271: 0,3354 | BÁC BỎ: Qwen3-Embedding đổi 37% bài Trung nhưng kém BGE-M3 → không mã hoá nhóm Việt | 30076e7 |
-| exp-048 | 27/10 | Gộp 2 thay đổi tốt: RRF k=100 + vi-share 0,75 (TB 180) (`sub_son_k100vs75`; 3,6% tài liệu khác vs75). Giả thuyết: hai lợi ích cộng được (≈ 0,341). Bác bỏ nếu ≤ k100 0,3400 | — | — | chờ điểm | | chưa |
-| exp-049 | 27/10 | k=150 + vs 0,75 (`sub_son_k150vs75`). k=30 < 60 < 100 → k còn tăng được? | — | — | chờ điểm | | chưa |
-| exp-050 | 27/10 | k=200 + vs 0,75 (`sub_son_k200vs75`) — tìm đỉnh của k | — | — | chờ điểm | | chưa |
-| exp-051 | 27/10 | k=100 + vs **0,80** (`sub_son_k100vs80`) — 0,65 < 0,70 < 0,75 → tiếp tục tăng phần Việt? | — | — | chờ điểm | | chưa |
+| exp-048 | 27/10 | Gộp 2 thay đổi tốt: RRF k=100 + vi-share 0,75 (TB 180) (`sub_son_k100vs75`; 3,6% tài liệu khác vs75). Giả thuyết: hai lợi ích cộng được (≈ 0,341). Bác bỏ nếu ≤ k100 0,3400 | — | — | đã nộp, chưa ghi điểm | hỏi điểm 28/10 | a9d6c7f |
+| exp-049 | 27/10 | k=150 + vs 0,75 (`sub_son_k150vs75`). k=30 < 60 < 100 → k còn tăng được? | — | **+0,0027** vs k100 | id 7280: **0,3427** · 0,373 · 0,3125 (P 0,206 R 0,587) | XÁC NHẬN: k=150 > 100 — BEST (nền mới) | a9d6c7f |
+| exp-050 | 27/10 | k=200 + vs 0,75 (`sub_son_k200vs75`) — tìm đỉnh của k | — | +0,0027 vs k100 | id 7281: **0,3427** · 0,373 · 0,3126 | bằng k=150 → k đã bão hoà ở 150–200, không thử lớn hơn | a9d6c7f |
+| exp-051 | 27/10 | k=100 + vs **0,80** (`sub_son_k100vs80`) — 0,65 < 0,70 < 0,75 → tiếp tục tăng phần Việt? | — | — | đã nộp, chưa ghi điểm | hỏi điểm 28/10 | a9d6c7f |
+| exp-052 | 28/10 | Nền k150vs75 (0,3427), vi-share **0,80** (`DC_son_k150vs80`, chưa nén) | — | — | chưa nộp | | chưa |
+| exp-053 | 28/10 | Nền k150vs75, **bm25_vi 0,5** (0,33 chọn ở k=60; k lớn làm phẳng hạng → cân bằng BM25/vector có thể dịch) (`DC_son_k150bm05`, chưa nén) | — | — | chưa nộp | | chưa |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho
 độ chính xác biên của lát đó. Thêm lát khi độ chính xác biên > F2/5 (doc 0,067 · chunk 0,057).
