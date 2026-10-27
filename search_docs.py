@@ -41,7 +41,9 @@ RRF_K = 60
 # BM25 trên câu dịch lệch từ vựng với bài gốc (top-10 chỉ trùng ~3% với dense) → trọng số thấp
 DEFAULT_WEIGHTS = ("bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,"  # cấu hình tốt nhất (exp-010/029)
                    # lượt thử nghiệm đã bác bỏ: fuse() gộp MỌI results/run_*.jsonl có sẵn → mặc định tắt
-                   "dense_vi_vimax=0,dense_vi_viprf=0,dense_vi_zhprf=0,dense_hyde_vi=0,dense_hyde_zh=0")
+                   "dense_vi_vimax=0,dense_vi_viprf=0,dense_vi_zhprf=0,dense_hyde_vi=0,dense_hyde_zh=0,"
+                   # Qwen3-Embedding (đang thử, exp-047+) — bật bằng --weights dense_q3e_zh_zh=1,...
+                   "dense_q3e_vi_vi=0,dense_q3e_vi_zh=0,dense_q3e_zh_zh=0")
 
 RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "bm25_vi": ("bm25", "vi", "vi"),
@@ -60,8 +62,20 @@ RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     # sinh bởi hyde.py (câu hỏi + đoạn trả lời giả định của Qwen3-8B) — chỉ dùng khi gộp, không tự chạy
     "dense_hyde_vi": ("hyde", "vi", "vi"),
     "dense_hyde_zh": ("hyde", "vi", "zh"),
+    # mô hình embedding thứ hai (embed_corpus.py --model Qwen/Qwen3-Embedding-0.6B --out emb_q3e [--group zh])
+    "dense_q3e_vi_vi": ("dense", "vi", "vi"),
+    "dense_q3e_vi_zh": ("dense", "vi", "zh"),
+    "dense_q3e_zh_zh": ("dense", "zh", "zh"),
 }
 EMB_TAIL = "emb_tail"
+DENSE_MODELS = {  # lượt dense_q3e_* dùng mô hình/vector riêng; còn lại BGE-M3 + emb/
+    "bge": dict(emb=EMB, model="BAAI/bge-m3", prompt=None),
+    # Qwen3-Embedding cần câu chỉ dẫn tiếng Anh phía câu hỏi (thiếu → giảm 1–5% theo model card); tài liệu không cần
+    "q3e": dict(emb="emb_q3e", model="Qwen/Qwen3-Embedding-0.6B",
+                prompt="Instruct: Given a medical question from a Vietnamese patient, retrieve medical articles "
+                       "or doctor answers that answer the question\nQuery:"),
+}
+dense_cfg = lambda name: "q3e" if name.startswith("dense_q3e_") else "bge"
 
 _hv = dict(n_features=N_FEATURES, alternate_sign=False, norm=None, dtype=np.float32)
 VEC = {
@@ -184,20 +198,28 @@ def run_bm25(name, queries, host_group):
 # ── Dense (BGE-M3), tìm riêng trong từng nhóm ngôn ngữ ──────────────────
 
 def run_dense(names, qs, doc_group):
+    for key, cfg in DENSE_MODELS.items():
+        sub = [n for n in names if dense_cfg(n) == key]
+        if sub:
+            run_dense_model(sub, qs, doc_group, **cfg)
+
+
+def run_dense_model(names, qs, doc_group, emb, model, prompt):
     import torch
     from sentence_transformers import SentenceTransformer
 
-    model = SentenceTransformer("BAAI/bge-m3", device="cuda", model_kwargs={"torch_dtype": torch.float16})
+    kw = {"tokenizer_kwargs": {"padding_side": "left"}} if "Qwen3" in model else {}
+    model = SentenceTransformer(model, device="cuda", model_kwargs={"torch_dtype": torch.float16}, **kw)
     model.max_seq_length = 512
-    qv = {l: model.encode([q for _, q in qs[l]], batch_size=64, normalize_embeddings=True,
+    qv = {l: model.encode([q for _, q in qs[l]], batch_size=64, normalize_embeddings=True, prompt=prompt,
                           convert_to_tensor=True).half()
           for l in {RUNS[n][1] for n in names}}
     del model
     torch.cuda.empty_cache()
 
-    files = sorted(glob.glob(f"{EMB}/*.parquet.npy"))
+    files = sorted(glob.glob(f"{emb}/*.parquet.npy"))
     sizes = [np.load(f, mmap_mode="r").shape[0] for f in files]
-    E = torch.empty((sum(sizes), 1024), dtype=torch.float16, device="cuda")
+    E = torch.empty((sum(sizes), np.load(files[0], mmap_mode="r").shape[1]), dtype=torch.float16, device="cuda")
     ids = np.empty(sum(sizes), dtype=np.int64)
     o = 0
     for f, n in tqdm(list(zip(files, sizes)), desc="Dense: nạp vector lên GPU"):
@@ -209,6 +231,9 @@ def run_dense(names, qs, doc_group):
     for name in names:
         _, qlang, g = RUNS[name]
         rows = np.where(grp == g)[0]
+        if len(rows) < POOL:  # vd emb_q3e mới mã hoá nhóm zh (--group zh) → chưa có vector nhóm vi
+            print(f"  {name}: bỏ qua — {emb}/ chỉ có {len(rows):,} tài liệu nhóm {g}")
+            continue
         Eg = E.index_select(0, torch.from_numpy(rows).to("cuda"))
         T = pos = None
         if name.endswith("max"):
@@ -311,6 +336,7 @@ def main():
         print("Tài liệu theo nhóm:", doc_group.value_counts().to_dict())
         todo = [n for n, (_, ql, _) in RUNS.items() if ql in qs
                 and (not n.endswith("max") or glob.glob(f"{EMB_TAIL}/*.ids.npy"))
+                and (dense_cfg(n) == "bge" or glob.glob(f"{DENSE_MODELS[dense_cfg(n)]['emb']}/*.ids.npy"))
                 and (not args.runs or n in args.runs.split(","))]
         for n in todo:
             if RUNS[n][0] == "bm25":
