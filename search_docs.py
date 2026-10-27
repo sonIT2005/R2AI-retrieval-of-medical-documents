@@ -71,7 +71,8 @@ EMB_TAIL = "emb_tail"
 DENSE_MODELS = {  # lượt dense_q3e_* dùng mô hình/vector riêng; còn lại BGE-M3 + emb/
     "bge": dict(emb=EMB, model="BAAI/bge-m3", prompt=None),
     # Qwen3-Embedding cần câu chỉ dẫn tiếng Anh phía câu hỏi (thiếu → giảm 1–5% theo model card); tài liệu không cần
-    "q3e": dict(emb="emb_q3e", model="Qwen/Qwen3-Embedding-0.6B",
+    # emb là mẫu glob: mỗi nhóm mã hoá vào thư mục riêng (emb_q3e/ = zh, emb_q3e_vi/ = vi) để --group không ghi đè nhau
+    "q3e": dict(emb="emb_q3e*", model="Qwen/Qwen3-Embedding-0.6B",
                 prompt="Instruct: Given a medical question from a Vietnamese patient, retrieve medical articles "
                        "or doctor answers that answer the question\nQuery:"),
 }
