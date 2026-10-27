@@ -64,7 +64,7 @@ def main():
     ap.add_argument("--test", action="store_true")
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--max-tokens", type=int, default=MAX_TOKENS, help="256 nhanh gấp đôi, 512 đủ ý hơn")
-    ap.add_argument("--model", default=MODEL, help="vd Qwen/Qwen3-Embedding-0.6B (tài liệu không cần chỉ dẫn)")
+    ap.add_argument("--model", default=MODEL, help="Mô hình embedding (mặc định BGE-M3)")
     ap.add_argument("--out", default=None, help="Thư mục vector (mặc định emb/; mô hình khác nên dùng thư mục khác)")
     ap.add_argument("--group", choices=["vi", "zh", "en"], default=None,
                     help="Chỉ mã hoá tài liệu thuộc một nhóm ngôn ngữ (nhóm theo website như search_docs.py)")
@@ -99,8 +99,7 @@ def main():
     if not todo:
         return
 
-    kw = {"tokenizer_kwargs": {"padding_side": "left"}} if "Qwen3" in args.model else {}  # Qwen3: pooling token cuối
-    model = SentenceTransformer(args.model, device="cuda", model_kwargs={"torch_dtype": torch.float16}, **kw)
+    model = SentenceTransformer(args.model, device="cuda", model_kwargs={"torch_dtype": torch.float16})
     model.max_seq_length = args.max_tokens
 
     pbar = tqdm(total=total, unit="bài", smoothing=0.05)

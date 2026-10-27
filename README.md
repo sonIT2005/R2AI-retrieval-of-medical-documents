@@ -35,12 +35,28 @@ ollama pull qwen3:8b
 | 1 | `python clean_corpus.py` | HTML/XML → văn bản sạch, chỉ giữ id thuộc corpus BTC → `clean/corpus/` | ~1h20 lần đầu, chạy lại chỉ xử lý file SQLite mới |
 | 2 | `python embed_corpus.py` | BGE-M3, 1 vector/tài liệu → `emb/` | ~3h cho 1,2M tài liệu, chạy lại dùng lại vector cũ |
 | 3 | `python translate_queries.py` | Qwen3-8B dịch câu hỏi sang Trung + Anh → `results/queries_translated.jsonl` | ~1,5h |
-| 4 | `python search_docs.py --quota 60,40,0` | 8 lượt tìm (BM25 + dense, theo từng ngôn ngữ) → gộp RRF có trọng số theo ngôn ngữ, ghép theo hạn mức Việt,Trung,Anh | ~15 phút; `--only-fuse` chỉ vài giây |
-| 5 | `python make_submission.py --docs results/docs_fused_60-40-0.jsonl` | Cắt chunk + chọn đoạn khớp nhất mỗi tài liệu → `submissions/*.zip` | vài phút đến ~30 phút (có bộ nhớ đệm) |
+| 4 | `python search_docs.py --quota 300,130,0 --rrf-k 150` | 8 lượt tìm (BM25 + dense, theo từng ngôn ngữ) → `results/run_*.jsonl` → gộp RRF có trọng số trong từng ngôn ngữ, ghép theo hạn mức Việt,Trung,Anh | ~15 phút; `--only-fuse` chỉ vài giây |
+| 5 | `python dyn_cut.py --docs … --mean 180 --vi-share 0.75` | Số tài liệu theo từng câu (giữ bài có điểm RRF ≥ tau·top-1), TB 180, 75% Việt | vài giây |
+| 6 | `python make_submission.py --docs … --chunk-chars 4000:400 --compress lzma-xl` | Mỗi tài liệu 1 đoạn ~4.000 ký tự quanh chỗ khớp nhất → `submissions/*.zip` (< 100 MB) | ~15 phút (có bộ nhớ đệm) |
+
+**Bước 4–6 gộp trong một lệnh** (mặc định = bài tốt nhất 0,3427): `./build_submission.sh <tên>`
 
 \* trên RTX 5060 Ti 16GB, 32 luồng CPU, 29GB RAM. Mọi bước dừng bằng `Ctrl+C` và chạy lại sẽ tiếp tục.
 
-Phụ trợ: `find_missing.py` (liệt kê URL chưa có nội dung), `crawl_missing2.py` (crawl bổ sung bằng curl_cffi, có phát hiện CAPTCHA).
+Phụ trợ trong `scripts/crawl/` (chạy từ gốc repo, vd `python scripts/crawl/find_missing.py`): `find_missing.py` (liệt kê URL chưa có nội dung), `crawl_missing2.py` (crawl bổ sung bằng curl_cffi, có phát hiện CAPTCHA).
+
+### Cấu trúc thư mục
+
+```
+clean_corpus.py · embed_corpus.py · translate_queries.py     bước 1–3 (chạy một lần)
+search_docs.py · dyn_cut.py · make_submission.py              bước 4–6 (mỗi bài nộp)
+build_submission.sh                                           bước 4–6 trong một lệnh
+scripts/crawl/                                                crawl bổ sung (đã xong, giữ để tham khảo)
+docs/                                                         EXPERIMENTS (nhật ký), PROGRESS, PLAN, CODEMAP; archive/ = tài liệu cũ
+.claude/ · tools/ · AGENTS.md · CLAUDE.md · start.sh/.ps1     bộ công cụ agent
+results/                                                      queries_translated + danh sách ứng viên dùng chung (D_wide_son*.jsonl)
+```
+Code của các thí nghiệm đã bác bỏ (reranker, HyDE, PRF, vector phần sau bài, Qwen3-Embedding) đã xoá khỏi cây; xem lại bằng `git log -- <tên file>`.
 
 ### Chi tiết các bước chính
 
@@ -63,7 +79,10 @@ ZIP chứa **đúng 1 file** `.json` (không thư mục con) → leaderboard.aig
 | 10 Việt + 5 Trung + 5 Anh (20 tài liệu) | 0,114 | 0,030 | 0,0724 |
 | 20 Trung | 0,061 | 0,046 | 0,0536 |
 | 20 Anh | 0 | 0 | 0 |
-| 40 Việt + 50 Trung + 10 Anh (100 tài liệu) | 0,238 | 0,084 | **0,1606** |
+| 40 Việt + 50 Trung + 10 Anh (100 tài liệu) | 0,238 | 0,084 | 0,1606 |
+| RRF k=150, TB 180 tài liệu/câu (75% Việt), chunk 4.000 ký tự cho mọi tài liệu (exp-049) | 0,373 | 0,313 | **0,3427** |
+
+Toàn bộ 50+ thí nghiệm: `docs/EXPERIMENTS.md`.
 
 Nhận xét:
 - Đáp án rất lớn: trung vị **60 tài liệu/câu** (tối đa 190), ~1 chunk đáp án/tài liệu → cần nộp nhiều tài liệu.
@@ -73,6 +92,4 @@ Nhận xét:
 
 ## Việc tiếp theo
 
-- Tăng số tài liệu/câu (100 → 150–200) và chỉnh tỷ lệ Việt/Trung.
-- Reranker đa ngôn ngữ (BGE-reranker-v2-m3) cho cả tài liệu lẫn chunk.
-- Cải thiện chọn chunk cho bài tiếng Việt dài.
+Xem `docs/PROGRESS.md` (bước tiếp theo) và `docs/PLAN.md` (backlog).

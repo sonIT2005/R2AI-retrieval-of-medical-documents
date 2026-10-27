@@ -1,58 +1,45 @@
-# PROGRESS — cập nhật: 2026-10-26 10:30 bởi claude
+# PROGRESS — cập nhật: 2026-10-27 12:00 bởi claude
 > File này là "bộ nhớ" của dự án. Hook SessionStart tự nạp nó sau mỗi lần mở phiên / compact / clear.
 > Giữ ngắn (< 80 dòng). Ghi đè thay vì viết thêm.
 
 ## Mục tiêu hiện tại
-- Vào top 6 (> 0,311) rồi top 5 (> 0,32) trước khi public đóng 31/10 23:59 GMT+7 (theo trang thi; phase 44 hết 16:59Z).
+- Tăng điểm trước khi public đóng 31/10 23:59 GMT+7; chốt cấu hình cho private (01–04/11, chỉ 5 lượt TỔNG).
 
 ## Điểm tốt nhất
 | Metric local | LB public | File nộp | Thí nghiệm | Ghi chú |
 |---|---|---|---|---|
-| — | **0,3427** | id 7280 | exp-049 | **Nền mới (27/10):** `search_docs.py --only-fuse --quota 300,130,0 --rrf-k 150 --out D_wide_son_k150` → `dyn_cut.py --docs results/D_wide_son_k150.jsonl --mean 180 --vi-share 0.75 --lo 80 --hi 400 --out results/DC_son_k150vs75.jsonl` → `make_submission.py --docs results/DC_son_k150vs75.jsonl --chunk-chars 4000:400 --compress lzma-xl --name sub_son_k150vs75` (85 MB). k=200 cũng 0,3427 |
-| — | 0,3369 | id 7160 | exp-041 | Máy Sơn, tái tạo đủ từ repo (3 file trong results/ đã commit): `search_docs.py --only-fuse --quota 300,130,0 --out D_wide_son` → `qwen_rerank.py --docs results/D_wide_son.jsonl --pool 250,100 --quota 0,0 --model Qwen/Qwen3-Reranker-0.6B --text passage --tokens-per-batch 48000` (~2,5 giờ; cache có sẵn → vài phút) → `dyn_cut.py --docs results/D_wide_son_q3r06Bprrf_all.jsonl --mean 180 --vi-share 0.7 --lo 80 --hi 400 --out results/DC_D_wide_son_q3r06Bprrf_all.jsonl` → `make_submission.py --docs results/DC_D_wide_son_q3r06Bprrf_all.jsonl --chunk-chars 4000:400 --compress lzma-xl --name sub_D_wide_son_q3r06Bprrf_all` (84,8 MB) |
-| — | **0,3365** | id 7238 | exp-041 baseline | **Nền khuyên dùng cho thí nghiệm mới** (kém bản rerank chỉ 0,0004 = nhiễu, không cần 2,5 giờ GPU): `search_docs.py --only-fuse --quota 300,130,0 --out D_wide_son` → `dyn_cut.py --docs results/D_wide_son.jsonl --mean 180 --vi-share 0.7 --lo 80 --hi 400 --out results/DC_D_wide_son.jsonl` → `make_submission.py --docs results/DC_D_wide_son.jsonl --chunk-chars 4000:400 --compress lzma-xl --name sub_D_wide_son`. Nguyen: dùng `results/D_wide_son.jsonl` trong repo thay cho D_wide cũ (0,3193) |
-| — | 0,3193 | id 7095 | exp-040 | `dyn_cut.py --docs results/D_wide.jsonl --mean 180 --vi-share 0.7 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl` (chunk cho mọi tài liệu, 83,8 MB) |
-| — | 0,3182 | id 7088 | exp-038 | như trên, TB 200 |
-| — | 0,2968 (đang hiện trên bảng) | id 6760 | exp-019 | đổi bài hiển thị: hỏi người dùng trước |
+| — | **0,3427** | id 7280 | exp-049 | `./build_submission.sh k150vs75` (= `search_docs.py --only-fuse --quota 300,130,0 --rrf-k 150` → `dyn_cut.py --mean 180 --vi-share 0.75 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl`, 85 MB). k=200 cũng 0,3427. Danh sách ứng viên: `results/D_wide_son_k150.jsonl` (trong git) |
+| — | 0,3400 | id 7270 | exp-046 | như trên, k=100, vi-share 0,7 |
+| — | 0,3365 | id 7238 | exp-041 | k=60, vi-share 0,7 (`results/D_wide_son.jsonl`) |
+| — | 0,3193 | id 7095 | exp-040 | D_wide trên máy Nguyen — kém D_wide_son cùng pipeline, chưa rõ vì sao (xem Vướng mắc) |
 
-## Đang làm (26/10)
-- Đã nộp 26/10 đủ 10/10: S1, S2, S3, B1, H1, B2, C1, D1, E1, D2. Lượt mới mở 00:00 GMT+7.
-- Hướng tiếp theo cho dyn_cut: thử TB 160 (vẫn tăng khi giảm?) và đổi tỉ lệ Việt/Trung; D2 còn ~11 MB trống.
-- Đang chạy nền: `qwen_rerank.py --docs results/D_wide.jsonl --pool 250,100 --quota 140,60 --limit 600` (Qwen3-Reranker-4B,
-  ~11 cặp/giây, ~6 giờ, log logs/qwen_rr_600.log) → results/D_wide_q3rr_140-60.jsonl, D_wide_q3rrf_140-60.jsonl.
-  Chỉ 600 câu đầu được chấm (còn lại giữ thứ tự cũ) → hiệu ứng trên LB ≈ một nửa nếu tập public ngẫu nhiên.
+## Đang làm (27/10)
+- Đã nộp 27/10 đủ 10/10. Chưa ghi điểm: exp-048 (k100 + vs 0,75), exp-051 (k100 + vs 0,80) — hỏi người dùng.
+- Đã dựng sẵn (chưa nén): `results/DC_son_k150vs80.jsonl` (exp-052), `results/DC_son_k150bm05.jsonl` (exp-053).
 
 ## Đã xong (mới nhất ở trên, tối đa 10 dòng)
-- 26/10 — số tài liệu: 150 → F2doc 0,3364 · 200 → **0,3387** · 250 → 0,3328 (đỉnh ≈ 200)
-- 26/10 — HyDE (hyde.py, Qwen3-8B) → tệ hơn (−0,003); cửa sổ đầu bài (`--window head`) → tệ hơn (−0,0006)
-- 26/10 — lzma-xl: nén 88 → 54 MB cùng bài → chunk cho nhiều tài liệu hơn: chunk Việt 86–135 +0,0066 (0,3084)
-- 24/10 — 250 tài liệu (0,3018); chunk_quota 85/15; bm25_vi 0,33; chunk 4.000 ký tự
+- 27/10 — dọn repo: xoá code thí nghiệm bác bỏ (rerank, qwen_rerank, hyde, prf, embed_tail, chunk_quota, Qwen3-Embedding
+  trong search_docs); crawl → scripts/crawl/; build_submission.sh = pipeline tốt nhất; xoá ~7 GB file thừa.
+- 27/10 — RRF k: 60 → 0,3365 · 100 → 0,3400 · 150 = 200 → **0,3427** (bão hoà). vi-share 0,65 tệ, 0,75 tốt.
+- 27/10 — dyn_cut TB 160 / 200 đều kém 180. Qwen3-Embedding nhóm Trung −0,0011 (bác bỏ, không mã hoá nhóm Việt).
+- 27/10 — Qwen3-Reranker theo đoạn: chỉ +0,0004 so với baseline cùng tập (bác bỏ).
+- 26/10 — dyn_cut (số tài liệu theo câu), chunk cho mọi tài liệu nhờ lzma-xl → 0,3193.
 
 ## Bước tiếp theo (1–3 việc, có lệnh chạy)
-1. Đọc điểm C1/D1. Cấu hình tốt hơn → dùng làm nền cho reranker.
-2. Khi reranker xong: chunk cho tất cả trên D_wide_q3rrf_140-60 (`make_submission.py --docs ... --chunk-chars 4000:200
-   --compress lzma-xl`), so với C1. Nếu thắng → chấm nốt 600 câu còn lại (bỏ --limit, cache giữ phần đã chấm).
-3. Cách đo không cần nhãn: số trúng = P × số mục; hai bài khác đúng một lát → độ chính xác biên của lát đó;
+1. Nén + nộp exp-052/053:
+   `for n in son_k150vs80 son_k150bm05; do python make_submission.py --docs results/DC_$n.jsonl --chunk-chars 4000:400 --compress lzma-xl --name sub_$n; done`
+2. Cách đo không cần nhãn: số trúng = P × số mục; hai bài khác đúng một lát → độ chính xác biên của lát đó;
    giữ lát nếu > F2/5 (doc ~0,068 · chunk ~0,057). Xem bảng cuối docs/EXPERIMENTS.md.
 
 ## Vướng mắc / câu hỏi mở
-- Dự án ở **E:\project_r2ai** (btc_data_v2 → E:\project_r2ai\data\v2, vibiomir_s3 → E:\project_r2ai\crawl).
-- Nộp bài: Chrome extension, chia ZIP phần ≤ 9 MB (mỗi file_upload 1 phần — gộp nhiều phần trong browser_batch bị từ chối),
-  ô tải phụ `document.body.prepend` rồi read_page depth 1 lấy ref (công cụ find hay bị giới hạn), ghép + kiểm SHA-256
-  trên trang, mỗi bài một tab mới.
-- Bộ chấm chỉ trả 7 số tổng hợp (FINAL, F2/P/R doc, F2/P/R chunk) — không có chi tiết từng câu.
-
-## Thay đổi 26/10 (Sơn) — đọc trước khi chạy lệnh cũ
-- `search_docs.py`: `DEFAULT_WEIGHTS` = cấu hình tốt nhất (bm25_vi=0.33, bm25_zh=0.3, bm25_en=0) và **tắt** vimax/prf/hyde.
-  `--weights` giờ **ghi đè từng lượt lên mặc định** (trước đây thay thế toàn bộ → lượt không ghi bị về 1).
-  Lệnh cũ có ghi đủ mọi lượt → kết quả không đổi; lệnh cũ bỏ sót lượt nào → lượt đó giờ lấy mặc định thay vì 1.
-- `qwen_rerank.py`: thêm `--model`, `--text passage` (đoạn khớp nhất), `--quota 0,0` (giữ hết, để dyn_cut cắt);
-  bản `*rrf` nay ghi `scores` = điểm RRF (trước ghi điểm reranker → dyn_cut cắt sai thang). Cache 4B + head giữ nguyên.
-- `build_submission.sh`: tự chọn Python (PY / venv Windows / venv Linux / python đang kích hoạt); tham số 7 = chunk-chars (mặc định 4000:400).
-- Hướng dẫn tái tạo bài 0,3193: `docs/HUONG_DAN_TAI_TAO_BEST.md` (việc của Nguyen).
+- Vì sao D_wide (Nguyen, 0,3193) < D_wide_son (0,3365) cùng pipeline? Nghi: máy Nguyen còn file run_* của vimax/hyde/prf
+  bị gộp với trọng số 1, hoặc thiếu ~15K tài liệu Việt. Cần Nguyen gửi danh sách results\run_*.jsonl + D_wide.jsonl.
+- Máy Nguyen: E:\project_r2ai (btc_data_v2 → data\v2, vibiomir_s3 → crawl).
+- Nộp qua Chrome extension: `PARTS=1 ./build_submission.sh …` chia ZIP phần ≤ 9 MB (mỗi file_upload 1 phần), ghép + kiểm SHA-256.
+- Bộ chấm trả 7 số tổng hợp (FINAL, F2/P/R doc, F2/P/R chunk).
 
 ## Bẫy đã biết (đừng lặp lại)
-- File > 100 MB → lỗi 413 (Cloudflare). lzma-xl ~0,35 MB/suất chunk; chunk cho cả 250 tài liệu = 106 MB (quá).
-- fuse() gộp MỌI results/run_*.jsonl với trọng số 1 → luôn đặt =0 cho lượt không dùng (prf, hyde, vimax).
-- GPU 16 GB: reranker 4B + một tiến trình BGE-M3 → tràn VRAM, chậm 5–60×. make_submission giờ nhả GPU trước khi nén.
+- File > 100 MB → lỗi 413 (Cloudflare). lzma-xl ~0,35 MB/suất chunk.
+- Luôn nộp baseline CÙNG tập ứng viên trước khi kết luận một thay đổi có lợi (exp-041 từng kết luận sai +0,0176).
+- `--weights` ghi đè từng lượt lên `DEFAULT_WEIGHTS`; fuse() chỉ gộp lượt có tên trong `RUNS` (file run_* lạ bị bỏ qua).
 - "BM25 Baseline" là tài khoản BTC. Thứ tự trong tập không đổi F2 doc — chỉ đổi tài liệu nào được kèm chunk.
