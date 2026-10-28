@@ -64,7 +64,7 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-053 | 28/10 | Nền k150vs75, **bm25_vi 0,5** (0,33 chọn ở k=60; k lớn làm phẳng hạng → cân bằng BM25/vector có thể dịch) (`DC_son_k150bm05`, chưa nén) | — | −0,0013 | id 7450: 0,3414 | BÁC BỎ: bm25_vi 0,33 vẫn tốt nhất cả ở k=150 | 40f00ab |
 | exp-054 | 28/10 | Lượt mới **bm25bi_vi** (BM25 trên cặp âm tiết liền nhau, 2^24 chiều) THÊM vào nhóm Việt, trọng số 0,33 như bm25_vi, trên nền k150 vs 0,75. Giả thuyết: tiếng Việt là từ ghép nhiều âm tiết, BM25 từ đơn khớp lẫn ("huyết" + "áp" ở hai chỗ khác nhau); cặp âm tiết khớp đúng cụm → một phiếu RRF độc lập, chính xác hơn. Bác bỏ nếu ≤ 0,3427 | — | **+0,0010** | id 7478: **0,3437** | XÁC NHẬN nhẹ: cặp âm tiết là phiếu RRF mới có ích (top-10 trùng BM25 từ đơn chỉ 18%) — BEST | a85c85c |
 | exp-055 | 28/10 | bm25bi_vi trọng số **1** (ngang dense) | — | −0,0431 | id 7481: 0,2996 | BÁC BỎ mạnh: BM25 (từ vựng) nặng ngang dense → đổi 31% tài liệu, kéo bài trùng cụm từ nhưng lệch ý (giống exp-010: bm25_vi 1 → 0,33 được +0,028) | a85c85c |
-| exp-056 | 28/10 | bm25bi_vi 0,33 **THAY** bm25_vi (bm25_vi=0) | — | — | chưa nộp | | chưa |
+| exp-056 | 28/10 | bm25bi_vi 0,33 **THAY** bm25_vi (bm25_vi=0) | — | −0,0017 vs 0,3427 | 0,3410 | BÁC BỎ: BM25 từ đơn và cặp âm tiết bổ sung cho nhau (khớp lẻ + khớp cụm) → giữ cả hai | 4043e13 |
 | exp-057 | 28/10 | bm25bi_vi **0,2** (+ bm25_vi 0,33) — đỉnh trọng số ở dưới 0,33? | — | — | chưa nộp | | chưa |
 | exp-058 | 28/10 | bm25bi_vi **0,5** (+ bm25_vi 0,33) — 0,33 → 1 tụt mạnh, đỉnh có thể nằm giữa | — | — | chưa nộp | | chưa |
 
