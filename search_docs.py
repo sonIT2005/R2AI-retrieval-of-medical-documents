@@ -39,12 +39,14 @@ BM25_MAX_CHARS = 10000
 POOL = 300
 RRF_K = 60
 # BM25 trên câu dịch lệch từ vựng với bài gốc (top-10 chỉ trùng ~3% với dense) → trọng số thấp
-DEFAULT_WEIGHTS = "bm25_vi=0.33,bm25_zh=0.3,bm25_en=0"  # cấu hình tốt nhất (exp-010/029)
+DEFAULT_WEIGHTS = ("bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,"  # cấu hình tốt nhất (exp-010/029)
+                   "bm25bi_vi=0")  # đang thử (exp-054+) — bật bằng --weights bm25bi_vi=...
 
 RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "bm25_vi": ("bm25", "vi", "vi"),
     "bm25_zh": ("bm25", "zh", "zh"),
     "bm25_en": ("bm25", "en", "en"),
+    "bm25bi_vi": ("bm25", "vi", "vi"),  # BM25 trên cặp âm tiết liền nhau ("huyết áp", "đau đầu")
     "dense_vi_vi": ("dense", "vi", "vi"),
     "dense_vi_zh": ("dense", "vi", "zh"),
     "dense_vi_en": ("dense", "vi", "en"),
@@ -57,7 +59,11 @@ VEC = {
     "vi": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b", **_hv),
     "en": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w\w+\b", stop_words="english", **_hv),
     "zh": HashingVectorizer(lowercase=True, token_pattern=r"\S+", **_hv),  # văn bản đã tách từ bằng jieba
+    # cặp âm tiết: nhiều tổ hợp hơn từ đơn → 2^24 chiều để giảm va chạm băm
+    "vi_bi": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b", ngram_range=(2, 2),
+                               **{**_hv, "n_features": 2 ** 24}),
 }
+BM25_VEC = {"bm25bi_vi": "vi_bi"}  # lượt BM25 dùng bộ tách khác nhóm ngôn ngữ của nó (mặc định = tên nhóm)
 
 
 # ── Dữ liệu ──────────────────────────────────────────────────────────────
@@ -114,31 +120,32 @@ def prepare(group, texts):
 
 
 def _part_tf(args):
-    path, group, host_group = args
+    path, group, host_group, key = args
     t = pq.read_table(path, columns=["doc_id", "host", "title", "text"]).to_pandas()
     t = t[t["host"].map(host_group).fillna("vi") == group]
     if t.empty:
         return None
     docs = (t["title"] + "\n" + t["text"]).str.slice(0, BM25_MAX_CHARS).tolist()
-    return t["doc_id"].to_numpy(), VEC[group].transform(prepare(group, docs)).tocsr()
+    return t["doc_id"].to_numpy(), VEC[key].transform(prepare(group, docs)).tocsr()
 
 
-def build_bm25(group, host_group):
-    d = f"{INDEX}/{group}"
+def build_bm25(group, host_group, key):
+    d = f"{INDEX}/{key}"
+    nf = VEC[key].n_features
     parts = sorted(glob.glob(f"{CORPUS}/*.parquet"))
     newest = max(os.path.getmtime(p) for p in parts)
     if os.path.exists(f"{d}/W.npz") and os.path.getmtime(f"{d}/W.npz") > newest:
         return sp.load_npz(f"{d}/W.npz"), np.load(f"{d}/ids.npy")
     with Pool(min(30, os.cpu_count() or 4)) as pool:
-        res = [r for r in tqdm(pool.imap(_part_tf, [(p, group, host_group) for p in parts]),
-                               total=len(parts), desc=f"BM25 {group}: tách từ") if r is not None]
+        res = [r for r in tqdm(pool.imap(_part_tf, [(p, group, host_group, key) for p in parts]),
+                               total=len(parts), desc=f"BM25 {key}: tách từ") if r is not None]
     ids = np.concatenate([i for i, _ in res])
     mats = [m for _, m in res]
     dls = [np.asarray(m.sum(axis=1)).ravel() for m in mats]
     avgdl = np.concatenate(dls).mean()
-    df = np.zeros(N_FEATURES, dtype=np.int64)
+    df = np.zeros(nf, dtype=np.int64)
     for m in mats:
-        df += np.bincount(m.indices, minlength=N_FEATURES)
+        df += np.bincount(m.indices, minlength=nf)
     n = len(ids)
     idf = np.log(1 + (n - df + 0.5) / (df + 0.5)).astype(np.float32)
     for m, dl in zip(mats, dls):
@@ -149,14 +156,15 @@ def build_bm25(group, host_group):
     os.makedirs(d, exist_ok=True)
     sp.save_npz(f"{d}/W.npz", W, compressed=False)
     np.save(f"{d}/ids.npy", ids)
-    print(f"  BM25 {group}: {n:,} tài liệu")
+    print(f"  BM25 {key}: {n:,} tài liệu")
     return W, ids
 
 
 def run_bm25(name, queries, host_group):
     _, _, group = RUNS[name]
-    W, ids = build_bm25(group, host_group)
-    Q = VEC[group].transform(prepare(group, [q for _, q in queries])).tocsr()
+    key = BM25_VEC.get(name, group)
+    W, ids = build_bm25(group, host_group, key)
+    Q = VEC[key].transform(prepare(group, [q for _, q in queries])).tocsr()
     Q.data[:] = 1.0
     WT = W.T.tocsr()
     all_ids, all_scores = [], []
