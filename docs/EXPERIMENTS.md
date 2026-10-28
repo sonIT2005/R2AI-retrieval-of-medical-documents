@@ -60,8 +60,8 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-049 | 27/10 | k=150 + vs 0,75 (`sub_son_k150vs75`). k=30 < 60 < 100 → k còn tăng được? | — | **+0,0027** vs k100 | id 7280: **0,3427** · 0,373 · 0,3125 (P 0,206 R 0,587) | XÁC NHẬN: k=150 > 100 — BEST (nền mới) | a9d6c7f |
 | exp-050 | 27/10 | k=200 + vs 0,75 (`sub_son_k200vs75`) — tìm đỉnh của k | — | +0,0027 vs k100 | id 7281: **0,3427** · 0,373 · 0,3126 | bằng k=150 → k đã bão hoà ở 150–200, không thử lớn hơn | a9d6c7f |
 | exp-051 | 27/10 | k=100 + vs **0,80** (`sub_son_k100vs80`) — 0,65 < 0,70 < 0,75 → tiếp tục tăng phần Việt? | — | — | đã nộp, chưa ghi điểm | hỏi điểm 28/10 | a9d6c7f |
-| exp-052 | 28/10 | Nền k150vs75 (0,3427), vi-share **0,80** (`DC_son_k150vs80`, chưa nén) | — | — | chưa nộp | | chưa |
-| exp-053 | 28/10 | Nền k150vs75, **bm25_vi 0,5** (0,33 chọn ở k=60; k lớn làm phẳng hạng → cân bằng BM25/vector có thể dịch) (`DC_son_k150bm05`, chưa nén) | — | — | chưa nộp | | chưa |
+| exp-052 | 28/10 | Nền k150vs75 (0,3427), vi-share **0,80** (`DC_son_k150vs80`, chưa nén) | — | −0,0008 | id 7447: 0,3419 | BÁC BỎ: đỉnh tỷ lệ Việt ở 0,75 (0,65 < 0,70 < 0,75 > 0,80) | 40f00ab |
+| exp-053 | 28/10 | Nền k150vs75, **bm25_vi 0,5** (0,33 chọn ở k=60; k lớn làm phẳng hạng → cân bằng BM25/vector có thể dịch) (`DC_son_k150bm05`, chưa nén) | — | −0,0013 | id 7450: 0,3414 | BÁC BỎ: bm25_vi 0,33 vẫn tốt nhất cả ở k=150 | 40f00ab |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho
 độ chính xác biên của lát đó. Thêm lát khi độ chính xác biên > F2/5 (doc 0,067 · chunk 0,057).

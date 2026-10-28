@@ -13,9 +13,9 @@
 | — | 0,3365 | id 7238 | exp-041 | k=60, vi-share 0,7 (`results/D_wide_son.jsonl`) |
 | — | 0,3193 | id 7095 | exp-040 | D_wide trên máy Nguyen — kém D_wide_son cùng pipeline, chưa rõ vì sao (xem Vướng mắc) |
 
-## Đang làm (27/10)
-- Đã nộp 27/10 đủ 10/10. Chưa ghi điểm: exp-048 (k100 + vs 0,75), exp-051 (k100 + vs 0,80) — hỏi người dùng.
-- Đã dựng sẵn (chưa nén): `results/DC_son_k150vs80.jsonl` (exp-052), `results/DC_son_k150bm05.jsonl` (exp-053).
+## Đang làm (28/10)
+- 28/10: exp-052 (vs 0,80) 0,3419 và exp-053 (bm25_vi 0,5) 0,3414 — cả hai kém 0,3427. Chỉnh tham số gộp/cắt đã bão hoà.
+- Chưa ghi điểm: exp-048 (k100 + vs 0,75), exp-051 (k100 + vs 0,80) — nộp 27/10.
 
 ## Đã xong (mới nhất ở trên, tối đa 10 dòng)
 - 27/10 — dọn repo: xoá code thí nghiệm bác bỏ (rerank, qwen_rerank, hyde, prf, embed_tail, chunk_quota, Qwen3-Embedding
