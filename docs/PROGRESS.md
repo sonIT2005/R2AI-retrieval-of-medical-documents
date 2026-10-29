@@ -8,14 +8,16 @@
 ## Điểm tốt nhất
 | Metric local | LB public | File nộp | Thí nghiệm | Ghi chú |
 |---|---|---|---|---|
-| — | **0,3427** | id 7280 | exp-049 | `./build_submission.sh k150vs75` (= `search_docs.py --only-fuse --quota 300,130,0 --rrf-k 150` → `dyn_cut.py --mean 180 --vi-share 0.75 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl`, 85 MB). k=200 cũng 0,3427. Danh sách ứng viên: `results/D_wide_son_k150.jsonl` (trong git) |
+| — | **0,3437** | id 7478 | exp-054 | `./build_submission.sh bi033 150 0.75 180 bm25bi_vi=0.33` — như 0,3427 + lượt BM25 cặp âm tiết (bm25bi_vi, chỉ mục index/bm25/vi_bi, dựng ~30 giây) trọng số 0,33 |
+| — | 0,3427 | id 7280 | exp-049 | `./build_submission.sh k150vs75` (= `search_docs.py --only-fuse --quota 300,130,0 --rrf-k 150` → `dyn_cut.py --mean 180 --vi-share 0.75 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl`, 85 MB). k=200 cũng 0,3427. Danh sách ứng viên: `results/D_wide_son_k150.jsonl` (trong git) |
 | — | 0,3400 | id 7270 | exp-046 | như trên, k=100, vi-share 0,7 |
 | — | 0,3365 | id 7238 | exp-041 | k=60, vi-share 0,7 (`results/D_wide_son.jsonl`) |
 | — | 0,3193 | id 7095 | exp-040 | D_wide trên máy Nguyen — kém D_wide_son cùng pipeline, chưa rõ vì sao (xem Vướng mắc) |
 
-## Đang làm (28/10)
-- 28/10: exp-052 (vs 0,80) 0,3419 và exp-053 (bm25_vi 0,5) 0,3414 — cả hai kém 0,3427. Chỉnh tham số gộp/cắt đã bão hoà.
-- Chưa ghi điểm: exp-048 (k100 + vs 0,75), exp-051 (k100 + vs 0,80) — nộp 27/10.
+## Đang làm (29/10)
+- bm25bi_vi: 0,33 → **0,3437** · 1 → 0,2996 · thay bm25_vi → 0,3410. Đã dựng results/DC_bi02.jsonl, DC_bi05.jsonl (exp-057/058).
+- Trang thi báo HẾT DUNG LƯỢNG (mỗi bài ~85 MB) → phải xoá bài cũ ở trang Resources trước khi nộp. KHÔNG xoá id 7478, 7280.
+- Chưa ghi điểm: exp-048, exp-051 (nộp 27/10).
 
 ## Đã xong (mới nhất ở trên, tối đa 10 dòng)
 - 27/10 — dọn repo: xoá code thí nghiệm bác bỏ (rerank, qwen_rerank, hyde, prf, embed_tail, chunk_quota, Qwen3-Embedding
