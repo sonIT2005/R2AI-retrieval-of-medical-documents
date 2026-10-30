@@ -72,6 +72,7 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-061 | 30/10 | bm25bi_vi **0,15** (không zh_bi) — tinh chỉnh đỉnh | — | — | chưa nộp | | chưa |
 | exp-062 | 30/10 | bm25bi_vi **0,25** (không zh_bi) | — | — | chưa nộp | | chưa |
 | exp-063 | 30/10 | Hướng A: **tách câu hỏi nhiều ý** (decompose_queries.py, Qwen3-8B, few-shot; thử 20 câu: 11 giữ 1 câu, câu nhiều bệnh tách đúng) → lượt dense_sub (mỗi câu con tìm riêng, RRF các câu con) THÊM vào nền bi02 với trọng số nhỏ. Giả thuyết: đáp án TB 60 tài liệu/câu phủ nhiều ý; 1 vector dense trộn các ý → bài chỉ nói 1 bệnh bị xếp thấp. Bác bỏ nếu ≤ 0,3442 | — | — | chưa chạy | | chưa |
+| — | 30/10 | Hướng B (đo, không nộp): 400 bài Việt ở 30 hạng đầu của bi02 — so bản sạch với toàn bộ chữ trên trang (body_lines). Dòng dài ≥80 ký tự bị bỏ = trung vị 11% độ dài bản sạch, nhưng xem mẫu (longchau, medlatec, vinmec, suckhoedoisong…) toàn là tiêu đề bài liên quan, miễn trừ trách nhiệm, form đặt lịch, quảng cáo, chú thích ảnh; không bài nào bị cắt cụt | — | — | — | BÁC BỎ "văn bản sạch thiếu nội dung đáp án" → không tốn lượt nộp. Hụt chunk 18% nhiều khả năng do chọn sai phần trong bài dài | — |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho
 độ chính xác biên của lát đó. Thêm lát khi độ chính xác biên > F2/5 (doc 0,067 · chunk 0,057).
