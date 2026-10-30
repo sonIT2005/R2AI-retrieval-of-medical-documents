@@ -12,8 +12,10 @@
   1.200 câu hỏi tiếng Việt → danh sách `relevant_docs` (id trong `links_corpus_vi_en_zh.parquet`, 1,19M URL:
   714k Việt, 240k Trung, 240k PubMed Anh) + `relevant_chunks` (doc_id + chunk_text trích NGUYÊN VĂN từ tài liệu).
 - Metric: càng cao càng tốt. Điểm = trung bình (F2 tài liệu, F2 chunk); F2 = 5PR/(4P+R), tính từng câu rồi macro-average.
-  Chunk đúng nếu overlap(c,g) = LCS_token(c,g) / |g| ≥ 0,4 với ít nhất 1 chunk tham chiếu g cùng câu + cùng doc_id
-  (chuẩn hoá NFKC, giải mã HTML entity, chữ thường, gộp khoảng trắng). Chia cho |g| → chunk nộp dài KHÔNG bị phạt.
+  Chunk đúng nếu overlap(c,g) = LCS_token(c,g) / max(|c|, |g|) ≥ 0,4 với ít nhất 1 chunk tham chiếu g cùng câu + cùng doc_id
+  (chuẩn hoá NFKC, giải mã HTML entity, chữ thường, gộp khoảng trắng) — theo mục "Phương pháp đánh giá" trên trang thi
+  (người dùng gửi 30/10). Trước 30/10 tài liệu đội ghi nhầm "/|g|". Chia cho max → chunk nộp QUÁ DÀI so với g bị phạt
+  (cần |c| ≤ 2,5·|g|). Độ dài 4.000 ký tự hiện tại được chọn theo điểm LB thật nên vẫn đúng với bộ chấm.
   Chunk P = số chunk nộp đúng / số chunk nộp; chunk R = số chunk tham chiếu được tìm thấy / tổng chunk tham chiếu.
 - Hạn nộp: public đến 31/10/2026 23:59 GMT+7 (người dùng xác nhận 29/10); private 01–04/11/2026; 23:59 GMT+7.
   Ràng buộc: 10 bài/ngày; private chỉ 5 bài TỔNG; ZIP chứa đúng 1 file .json; phải có working-notes paper.
