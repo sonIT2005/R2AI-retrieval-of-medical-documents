@@ -12,6 +12,8 @@
 !make_submission.py
 !build_submission.sh
 !dyn_cut.py
+!qwen_rerank.py
+!rerank.py
 !scripts/
 !scripts/crawl/
 !scripts/crawl/find_missing.py
