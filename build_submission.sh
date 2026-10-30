@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # build_submission.sh NAME [RRF_K] [VI_SHARE] [MEAN] [WEIGHTS]
-#   Mặc định = bài tốt nhất 0,3427 (exp-049): RRF k=150, 75% tài liệu Việt, TB 180 tài liệu/câu.
-#   vd: ./build_submission.sh k150vs75                 → submissions/sub_k150vs75.zip
-#       ./build_submission.sh k150bm05 150 0.75 180 bm25_vi=0.5
+#   Mặc định = bài tốt nhất 0,3442 (exp-057, bi02): RRF k=150, 75% tài liệu Việt, TB 180 tài liệu/câu,
+#   trọng số lượt tìm = DEFAULT_WEIGHTS trong search_docs.py (có bm25bi_vi=0.2; chỉ mục index/bm25/vi_bi).
+#   vd: ./build_submission.sh best                     → submissions/sub_best.zip
+#       ./build_submission.sh bm05 150 0.75 180 bm25_vi=0.5
 #   PARTS=1 ./build_submission.sh ...   chia thêm ZIP thành phần ≤ 9 MB (submissions/parts/) để nộp qua Chrome extension.
 #   Cần sẵn results/run_*.jsonl (search_docs.py chạy đủ một lần). Nén LZMA-XL mất ~10–15 phút.
 #   Python: biến PY nếu đặt; không thì venv Windows (.venv_search/Scripts) hoặc Linux (.venv_search/bin);
@@ -16,7 +17,7 @@ if [ -z "$py" ]; then
 fi
 py=${py:-python}
 NAME=$1; K=${2:-150}; VS=${3:-0.75}; MEAN=${4:-180}; W=${5:-}
-[ -z "$NAME" ] && { sed -n 2,7p "$0"; exit 1; }
+[ -z "$NAME" ] && { sed -n 2,8p "$0"; exit 1; }
 $py search_docs.py --only-fuse --quota 300,130,0 --rrf-k "$K" --weights "$W" --out "D_$NAME"
 $py dyn_cut.py --docs "results/D_$NAME.jsonl" --mean "$MEAN" --vi-share "$VS" --lo 80 --hi 400 --out "results/DC_$NAME.jsonl"
 $py make_submission.py --docs "results/DC_$NAME.jsonl" --chunk-chars 4000:400 --compress lzma-xl --name "sub_$NAME"

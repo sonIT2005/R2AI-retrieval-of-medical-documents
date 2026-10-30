@@ -40,8 +40,8 @@ BM25_MAX_CHARS = 10000
 POOL = 300
 RRF_K = 60
 # BM25 trên câu dịch lệch từ vựng với bài gốc (top-10 chỉ trùng ~3% với dense) → trọng số thấp
-DEFAULT_WEIGHTS = ("bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,"  # cấu hình tốt nhất (exp-010/029)
-                   "bm25bi_vi=0,bm25bi_zh=0,dsub_vi=0,dsub_zh=0")  # đang thử (exp-054+) — bật bằng --weights bm25bi_vi=...
+DEFAULT_WEIGHTS = ("bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,bm25bi_vi=0.2,"  # cấu hình tốt nhất (exp-010/029/057)
+                   "bm25bi_zh=0,dsub_vi=0,dsub_zh=0")  # đã bác bỏ (exp-059/060, 063–065)
 
 RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "bm25_vi": ("bm25", "vi", "vi"),
