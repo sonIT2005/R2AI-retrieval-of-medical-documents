@@ -65,8 +65,12 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-054 | 28/10 | Lượt mới **bm25bi_vi** (BM25 trên cặp âm tiết liền nhau, 2^24 chiều) THÊM vào nhóm Việt, trọng số 0,33 như bm25_vi, trên nền k150 vs 0,75. Giả thuyết: tiếng Việt là từ ghép nhiều âm tiết, BM25 từ đơn khớp lẫn ("huyết" + "áp" ở hai chỗ khác nhau); cặp âm tiết khớp đúng cụm → một phiếu RRF độc lập, chính xác hơn. Bác bỏ nếu ≤ 0,3427 | — | **+0,0010** | id 7478: **0,3437** | XÁC NHẬN nhẹ: cặp âm tiết là phiếu RRF mới có ích (top-10 trùng BM25 từ đơn chỉ 18%) — BEST | a85c85c |
 | exp-055 | 28/10 | bm25bi_vi trọng số **1** (ngang dense) | — | −0,0431 | id 7481: 0,2996 | BÁC BỎ mạnh: BM25 (từ vựng) nặng ngang dense → đổi 31% tài liệu, kéo bài trùng cụm từ nhưng lệch ý (giống exp-010: bm25_vi 1 → 0,33 được +0,028) | a85c85c |
 | exp-056 | 28/10 | bm25bi_vi 0,33 **THAY** bm25_vi (bm25_vi=0) | — | −0,0017 vs 0,3427 | 0,3410 | BÁC BỎ: BM25 từ đơn và cặp âm tiết bổ sung cho nhau (khớp lẻ + khớp cụm) → giữ cả hai | 4043e13 |
-| exp-057 | 28/10 | bm25bi_vi **0,2** (+ bm25_vi 0,33) — đỉnh trọng số ở dưới 0,33? | — | — | chưa nộp | | chưa |
-| exp-058 | 28/10 | bm25bi_vi **0,5** (+ bm25_vi 0,33) — 0,33 → 1 tụt mạnh, đỉnh có thể nằm giữa | — | — | chưa nộp | | chưa |
+| exp-057 | 28/10 | bm25bi_vi **0,2** (+ bm25_vi 0,33) — đỉnh trọng số ở dưới 0,33? | — | +0,0005 | **0,3442** · 0,3748 · 0,3135 (P 0,2065 R 0,5895) | XÁC NHẬN nhẹ: 0,2 > 0,33 > 1 — BEST | 4043e13 |
+| exp-058 | 28/10 | bm25bi_vi **0,5** (+ bm25_vi 0,33) — 0,33 → 1 tụt mạnh, đỉnh có thể nằm giữa | — | −0,0043 vs bi02 | 0,3399 | BÁC BỎ: đỉnh trọng số bm25bi_vi ≈ 0,2 (0 → 0,3427 · 0,2 → 0,3442 · 0,33 → 0,3437 · 0,5 → 0,3399 · 1 → 0,2996) | 4043e13 |
+| exp-059 | 30/10 | Nền bi02 (0,3442) + lượt mới **bm25bi_zh** (BM25 cặp CHỮ Hán trên câu dịch Trung, không qua jieba) trọng số **0,3** như bm25_zh. Top-10 trùng jieba 32% (Việt: 18%) → kỳ vọng nhỏ hơn bên Việt. Bác bỏ nếu ≤ 0,3442 | — | — | chưa nộp | | chưa |
+| exp-060 | 30/10 | như exp-059, bm25bi_zh **0,15** | — | — | chưa nộp | | chưa |
+| exp-061 | 30/10 | bm25bi_vi **0,15** (không zh_bi) — tinh chỉnh đỉnh | — | — | chưa nộp | | chưa |
+| exp-062 | 30/10 | bm25bi_vi **0,25** (không zh_bi) | — | — | chưa nộp | | chưa |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho
 độ chính xác biên của lát đó. Thêm lát khi độ chính xác biên > F2/5 (doc 0,067 · chunk 0,057).

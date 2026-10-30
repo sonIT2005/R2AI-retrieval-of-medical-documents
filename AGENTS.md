@@ -15,7 +15,7 @@
   Chunk đúng nếu overlap(c,g) = LCS_token(c,g) / |g| ≥ 0,4 với ít nhất 1 chunk tham chiếu g cùng câu + cùng doc_id
   (chuẩn hoá NFKC, giải mã HTML entity, chữ thường, gộp khoảng trắng). Chia cho |g| → chunk nộp dài KHÔNG bị phạt.
   Chunk P = số chunk nộp đúng / số chunk nộp; chunk R = số chunk tham chiếu được tìm thấy / tổng chunk tham chiếu.
-- Hạn nộp: public đến 31/10/2026 (LB đóng 07:00 GMT+7); private 01–04/11/2026; 23:59 GMT+7.
+- Hạn nộp: public đến 31/10/2026 23:59 GMT+7 (người dùng xác nhận 29/10); private 01–04/11/2026; 23:59 GMT+7.
   Ràng buộc: 10 bài/ngày; private chỉ 5 bài TỔNG; ZIP chứa đúng 1 file .json; phải có working-notes paper.
 - Luật cứng: chỉ model mở ≤15B, phát hành trước 01/08/2026 (không GPT/Gemini… trong pipeline). Dữ liệu ngoài phải
   trích nguồn. Cấm dò đáp án: `details.jsonl` chỉ dùng phân tích tổng quát, không ghi nhớ đáp án từng câu.

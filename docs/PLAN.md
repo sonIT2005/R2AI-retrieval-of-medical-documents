@@ -5,7 +5,7 @@ Nguồn: setup | error-analysis | council-rXX/<model> | debate | ý tưởng c�
 ## Mốc
 - M1: vượt 0,2 (hạng ~11) — hạn 23/10
 - M2: vượt 0,3 (top 6) — hạn 28/10
-- M3: chốt cấu hình private (5 bài tổng) — 31/10; public đóng 31/10 07:00
+- M3: chốt cấu hình private (5 bài tổng) — 31/10; public đóng 31/10 23:59
 
 ## Backlog
 | ID | Thí nghiệm / việc | Nguồn | Kỳ vọng | Tự tin | Chi phí | Trạng thái |

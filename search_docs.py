@@ -40,13 +40,14 @@ POOL = 300
 RRF_K = 60
 # BM25 trên câu dịch lệch từ vựng với bài gốc (top-10 chỉ trùng ~3% với dense) → trọng số thấp
 DEFAULT_WEIGHTS = ("bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,"  # cấu hình tốt nhất (exp-010/029)
-                   "bm25bi_vi=0")  # đang thử (exp-054+) — bật bằng --weights bm25bi_vi=...
+                   "bm25bi_vi=0,bm25bi_zh=0")  # đang thử (exp-054+) — bật bằng --weights bm25bi_vi=...
 
 RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "bm25_vi": ("bm25", "vi", "vi"),
     "bm25_zh": ("bm25", "zh", "zh"),
     "bm25_en": ("bm25", "en", "en"),
     "bm25bi_vi": ("bm25", "vi", "vi"),  # BM25 trên cặp âm tiết liền nhau ("huyết áp", "đau đầu")
+    "bm25bi_zh": ("bm25", "zh", "zh"),  # BM25 trên cặp chữ Hán liền nhau (không qua jieba) của câu dịch Trung
     "dense_vi_vi": ("dense", "vi", "vi"),
     "dense_vi_zh": ("dense", "vi", "zh"),
     "dense_vi_en": ("dense", "vi", "en"),
@@ -62,8 +63,11 @@ VEC = {
     # cặp âm tiết: nhiều tổ hợp hơn từ đơn → 2^24 chiều để giảm va chạm băm
     "vi_bi": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b", ngram_range=(2, 2),
                                **{**_hv, "n_features": 2 ** 24}),
+    # cặp chữ liền nhau (cách chuẩn của tìm kiếm tiếng Trung) — chạy trên văn bản gốc, không tách từ
+    "zh_bi": HashingVectorizer(lowercase=True, analyzer="char", ngram_range=(2, 2),
+                               **{**_hv, "n_features": 2 ** 24}),
 }
-BM25_VEC = {"bm25bi_vi": "vi_bi"}  # lượt BM25 dùng bộ tách khác nhóm ngôn ngữ của nó (mặc định = tên nhóm)
+BM25_VEC = {"bm25bi_vi": "vi_bi", "bm25bi_zh": "zh_bi"}  # lượt BM25 dùng bộ tách khác nhóm ngôn ngữ của nó (mặc định = tên nhóm)
 
 
 # ── Dữ liệu ──────────────────────────────────────────────────────────────
@@ -111,8 +115,8 @@ def load_run(name):
 
 # ── BM25 theo từng nhóm ngôn ngữ ─────────────────────────────────────────
 
-def prepare(group, texts):
-    if group != "zh":
+def prepare(key, texts):
+    if key != "zh":  # chỉ chỉ mục BM25 "zh" tách từ bằng jieba
         return texts
     import jieba
     jieba.setLogLevel(60)
@@ -126,7 +130,7 @@ def _part_tf(args):
     if t.empty:
         return None
     docs = (t["title"] + "\n" + t["text"]).str.slice(0, BM25_MAX_CHARS).tolist()
-    return t["doc_id"].to_numpy(), VEC[key].transform(prepare(group, docs)).tocsr()
+    return t["doc_id"].to_numpy(), VEC[key].transform(prepare(key, docs)).tocsr()
 
 
 def build_bm25(group, host_group, key):
@@ -164,7 +168,7 @@ def run_bm25(name, queries, host_group):
     _, _, group = RUNS[name]
     key = BM25_VEC.get(name, group)
     W, ids = build_bm25(group, host_group, key)
-    Q = VEC[key].transform(prepare(group, [q for _, q in queries])).tocsr()
+    Q = VEC[key].transform(prepare(key, [q for _, q in queries])).tocsr()
     Q.data[:] = 1.0
     WT = W.T.tocsr()
     all_ids, all_scores = [], []
