@@ -8,6 +8,7 @@
 !embed_corpus.py
 !search_docs.py
 !translate_queries.py
+!decompose_queries.py
 !make_submission.py
 !build_submission.sh
 !dyn_cut.py
@@ -19,6 +20,7 @@
 !results/
 results/*
 !results/queries_translated.jsonl
+!results/queries_sub.jsonl
 # Danh sách ứng viên dựng trên máy Sơn — cả đội dùng chung, khỏi lệch do khác dữ liệu/lượt tìm
 !results/D_wide_son.jsonl
 !results/D_wide_son_k150.jsonl

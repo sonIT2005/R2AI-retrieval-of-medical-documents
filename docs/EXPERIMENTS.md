@@ -71,6 +71,7 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-060 | 30/10 | như exp-059, bm25bi_zh **0,15** | — | — | chưa nộp | | chưa |
 | exp-061 | 30/10 | bm25bi_vi **0,15** (không zh_bi) — tinh chỉnh đỉnh | — | — | chưa nộp | | chưa |
 | exp-062 | 30/10 | bm25bi_vi **0,25** (không zh_bi) | — | — | chưa nộp | | chưa |
+| exp-063 | 30/10 | Hướng A: **tách câu hỏi nhiều ý** (decompose_queries.py, Qwen3-8B, few-shot; thử 20 câu: 11 giữ 1 câu, câu nhiều bệnh tách đúng) → lượt dense_sub (mỗi câu con tìm riêng, RRF các câu con) THÊM vào nền bi02 với trọng số nhỏ. Giả thuyết: đáp án TB 60 tài liệu/câu phủ nhiều ý; 1 vector dense trộn các ý → bài chỉ nói 1 bệnh bị xếp thấp. Bác bỏ nếu ≤ 0,3442 | — | — | chưa chạy | | chưa |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho
 độ chính xác biên của lát đó. Thêm lát khi độ chính xác biên > F2/5 (doc 0,067 · chunk 0,057).
