@@ -81,10 +81,10 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-070 | 31/10 | prr, dyn_cut TB **190** (gần trần pool 200) | — | −0,0079 | id 7829: 0,3400 | BÁC BỎ: 190 gần trần pool, câu nào cũng lấy gần hết → mất thích nghi | 3a45fe1 |
 | exp-071 | 31/10 | prr, vi-share **0,70** | — | +0,0014 | id 7830: 0,3493 | XÁC NHẬN nhẹ: sau rerank 70% Việt > 75% (TB thực 176 vì Trung chạm trần pool 50) | 3a45fe1 |
 | exp-072 | 31/10 | prr, vi-share **0,80** | — | −0,0037 | id 7831: 0,3442 | BÁC BỎ | 3a45fe1 |
-| exp-073 | 31/10 | prr, TB **140** (vs 0,75) — 180 → 160 tăng +0,011, đỉnh còn thấp hơn? | — | — | chưa nộp | | chưa |
-| exp-074 | 31/10 | prr, TB **120** | — | — | chưa nộp | | chưa |
+| exp-073 | 31/10 | prr, TB **140** (vs 0,75) — 180 → 160 tăng +0,011, đỉnh còn thấp hơn? | — | **+0,0013** vs TB 160 | **0,3606** · 0,3938 · 0,3274 (P doc 0,2379 R 0,5565) | XÁC NHẬN — BEST cuối vòng public: 180 → 160 → 140 vẫn tăng nhưng chậm lại (+0,011 → +0,0013) → đỉnh ≈ 140; TB 120 chưa thử (hết lượt) | 7aab5a3 |
+| exp-074 | 31/10 | prr, TB **120** | — | — | không nộp (hết lượt public) | | chưa |
 | exp-075 | 31/10 | prr, TB 160 + vi-share **0,70** (gộp hai thay đổi tốt) | — | — | chưa nộp | | chưa |
-| exp-076 | 31/10 | prr, TB 140 + vi-share 0,70 | — | — | chưa nộp | | chưa |
+| exp-076 | 31/10 | prr, TB 140 + vi-share 0,70 | — | — | không nộp (hết lượt public) | | chưa |
 | — | 30/10 | Hướng B (đo, không nộp): 400 bài Việt ở 30 hạng đầu của bi02 — so bản sạch với toàn bộ chữ trên trang (body_lines). Dòng dài ≥80 ký tự bị bỏ = trung vị 11% độ dài bản sạch, nhưng xem mẫu (longchau, medlatec, vinmec, suckhoedoisong…) toàn là tiêu đề bài liên quan, miễn trừ trách nhiệm, form đặt lịch, quảng cáo, chú thích ảnh; không bài nào bị cắt cụt | — | — | — | BÁC BỎ "văn bản sạch thiếu nội dung đáp án" → không tốn lượt nộp. Hụt chunk 18% nhiều khả năng do chọn sai phần trong bài dài | — |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho
