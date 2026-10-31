@@ -25,7 +25,8 @@
 - Lệnh chuẩn (chạy từ gốc repo; làm sạch: conda base Py3.14; còn lại: conda env `vibiomir` Py3.11):
   - Làm sạch: `python clean_corpus.py` · Vector: `python embed_corpus.py` · Dịch: `python translate_queries.py`
   - Tìm (8 lượt → results/run_*.jsonl): `python search_docs.py --quota 300,130,0 --rrf-k 150` (`--only-fuse` chỉ gộp lại, vài giây)
-  - Tạo file nộp (gộp → dyn_cut → make_submission, mặc định = bài tốt nhất): `./build_submission.sh <tên> [k] [vi-share] [mean] [weights]`
+  - Tạo file nộp (gộp → Qwen3-Reranker-4B → dyn_cut → make_submission, mặc định = BEST 0,3606): `./build_submission.sh <tên> [mean] [vi-share] [weights]`
+    (`CAND=results/D_bi02.jsonl` = dùng ứng viên trong git → đúng bài 0,3606, reranker dùng cache, không cần GPU 6 giờ)
   - **Eval chuẩn**: CHƯA có eval local (không có nhãn) → thước đo duy nhất là LB public (600 câu).
 - Nhiễu đã đo: chưa đo. LB public chấm 600/1.200 câu.
 

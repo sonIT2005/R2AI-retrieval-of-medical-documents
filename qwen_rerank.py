@@ -1,16 +1,16 @@
 """
-Chọn lại tập tài liệu bằng Qwen3-Reranker-4B (06/2025, Apache-2.0) trên danh sách ứng viên RỘNG.
+Chấm lại danh sách ứng viên bằng Qwen3-Reranker-4B (06/2025, Apache-2.0) — bước đem lại BEST 0,3606 (exp-066/073).
 
-    python qwen_rerank.py --docs results/D_wide.jsonl --limit 20            # đo tốc độ
-    python qwen_rerank.py --docs results/D_wide.jsonl --quota 175,75        # chấm hết + ghi 2 bản
+    python qwen_rerank.py --docs results/D_bi02.jsonl --pool 150,50 --quota 0,0 \
+        --model Qwen/Qwen3-Reranker-4B --text passage --passage-chars 1200 --tokens-per-batch 12000
 
-Khác rerank.py (bge-reranker-v2-m3, exp-018/020 — giữ nguyên TẬP, chỉ đổi thứ tự): ở đây reranker quyết định tài liệu
-nào vào tập. Mỗi tài liệu: tiêu đề + đầu bài (Việt --head-vi ký tự, Trung --head-zh); tài liệu Việt dùng câu hỏi Việt,
-tài liệu Trung dùng bản dịch Trung. Điểm = P("yes") của reranker.
-Kết quả (giữ hạn mức Việt,Trung; xen kẽ như search_docs.fuse):
-    results/<tên>_q3rr_<V>-<Z>.jsonl    top theo điểm reranker
-    results/<tên>_q3rrf_<V>-<Z>.jsonl   top theo RRF(k=60) giữa thứ tự cũ và thứ tự reranker
-Điểm lưu đệm ở results/qwen_rerank_cache.pkl (khoá: câu, tài liệu, độ dài đầu bài).
+Mỗi cặp: câu hỏi ĐẦY ĐỦ (tài liệu Trung dùng bản dịch Trung) + tiêu đề + đoạn khớp nhất theo BGE-M3 (≤ --passage-chars).
+Điểm = P("yes"). --pool: chỉ chấm N tài liệu Việt,Trung đầu; phần còn lại giữ thứ tự cũ, xếp sau (điểm -1).
+Kết quả (--quota 0,0 = giữ mọi ứng viên để dyn_cut.py cắt theo điểm):
+    results/<tên>_q3r4Bprr_all.jsonl    thứ tự theo điểm reranker  ← dùng bản này (prrf kém hơn, exp-066)
+    results/<tên>_q3r4Bprrf_all.jsonl   RRF(k=60) giữa thứ tự cũ và thứ tự reranker
+Điểm lưu đệm sau mỗi khối --shard cặp ở results/qwen_rerank_cache_q3r4B_passage.pkl → chạy lại chỉ chấm cặp mới.
+Bộ nhớ: 4B fp16 ~8 GB VRAM; --tokens-per-batch 24000 bị OOM trên 16 GB → 12000.
 """
 
 import os
@@ -25,8 +25,12 @@ import pandas as pd
 import pyarrow.parquet as pq
 from tqdm import tqdm
 
-from rerank import interleave, CORPUS, QUERIES, TRANSLATED, RRF_K
 from make_submission import chunk_doc, MAX_CHARS, CHUNK_CACHE
+
+CORPUS = "clean/corpus"
+QUERIES = "btc_data_v2/query.parquet"
+TRANSLATED = "results/queries_translated.jsonl"
+RRF_K = 60
 
 MODEL = "Qwen/Qwen3-Reranker-4B"
 CACHE = "results/qwen_rerank_cache.pkl"  # chỉ cho MODEL + --text head (giữ khoá cũ)
@@ -34,6 +38,15 @@ INSTRUCT = "Given a Vietnamese patient's medical question, judge whether the doc
 PREFIX = ("<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct "
           "provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n")
 SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+
+
+def interleave(by_lang, quota):
+    """Xen kẽ các danh sách theo tỉ lệ hạn mức như search_docs.fuse."""
+    merged = []
+    for gi, (lang, docs) in enumerate(by_lang.items()):
+        merged += [((j + 1) / quota[lang], gi, d, lang) for j, d in enumerate(docs)]
+    merged.sort()
+    return [m[2] for m in merged], [m[3] for m in merged]
 
 
 def best_passages(rows, docs, qtext):

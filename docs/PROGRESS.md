@@ -8,7 +8,7 @@
 ## Điểm tốt nhất
 | Metric local | LB public | File nộp | Thí nghiệm | Ghi chú |
 |---|---|---|---|---|
-| — | **0,3606** | prr_m140 | exp-073 | như dòng dưới nhưng `dyn_cut.py --mean 140` (BEST cuối vòng public) |
+| — | **0,3606** | prr_m140 | exp-073 | `CAND=results/D_bi02.jsonl ./build_submission.sh best` (đã kiểm: khớp từng byte với bài nộp). BEST cuối vòng public |
 | — | 0,3593 | id 7828 | exp-069 | Nền bi02 → `qwen_rerank.py --docs results/D_bi02.jsonl --pool 150,50 --quota 0,0 --model Qwen/Qwen3-Reranker-4B --text passage --passage-chars 1200 --tokens-per-batch 12000` (~6 giờ GPU; điểm lưu ở results/qwen_rerank_cache_q3r4B_passage.pkl) → `dyn_cut.py --docs results/D_bi02_q3r4Bprr_all.jsonl --mean 160 --vi-share 0.75 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl` |
 | — | 0,3442 | bi02 | exp-057 | `./build_submission.sh best` (mặc định = cấu hình này: k=150, vi-share 0,75, TB 180, bm25bi_vi 0,2). Cần chỉ mục index/bm25/vi_bi: `python search_docs.py --runs bm25bi_vi` (~30 giây) |
 | — | 0,3437 | id 7478 | exp-054 | `./build_submission.sh bi033 150 0.75 180 bm25bi_vi=0.33` — như 0,3427 + lượt BM25 cặp âm tiết (bm25bi_vi, chỉ mục index/bm25/vi_bi, dựng ~30 giây) trọng số 0,33 |
@@ -23,6 +23,8 @@
 - Tiếp: working-notes paper; dọn thư mục (đề xuất trước, người dùng duyệt).
 
 ## Đã xong (mới nhất ở trên, tối đa 10 dòng)
+- 31/10 — dọn repo lần 2: xoá rerank.py (gộp interleave vào qwen_rerank), decompose_queries.py, lượt dsub/bm25bi_zh, ~2,4 GB;
+  build_submission.sh = BEST 0,3606 (có reranker); git giữ D_bi02.jsonl + cache điểm reranker. Kiểm: dựng lại khớp từng byte.
 - 27/10 — dọn repo: xoá code thí nghiệm bác bỏ (rerank, qwen_rerank, hyde, prf, embed_tail, chunk_quota, Qwen3-Embedding
   trong search_docs); crawl → scripts/crawl/; build_submission.sh = pipeline tốt nhất; xoá ~7 GB file thừa.
 - 27/10 — RRF k: 60 → 0,3365 · 100 → 0,3400 · 150 = 200 → **0,3427** (bão hoà). vi-share 0,65 tệ, 0,75 tốt.

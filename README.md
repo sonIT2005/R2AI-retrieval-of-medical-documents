@@ -36,10 +36,13 @@ ollama pull qwen3:8b
 | 2 | `python embed_corpus.py` | BGE-M3, 1 vector/tài liệu → `emb/` | ~3h cho 1,2M tài liệu, chạy lại dùng lại vector cũ |
 | 3 | `python translate_queries.py` | Qwen3-8B dịch câu hỏi sang Trung + Anh → `results/queries_translated.jsonl` | ~1,5h |
 | 4 | `python search_docs.py --quota 300,130,0 --rrf-k 150` | 8 lượt tìm (BM25 + dense, theo từng ngôn ngữ) → `results/run_*.jsonl` → gộp RRF có trọng số trong từng ngôn ngữ, ghép theo hạn mức Việt,Trung,Anh | ~15 phút; `--only-fuse` chỉ vài giây |
-| 5 | `python dyn_cut.py --docs … --mean 180 --vi-share 0.75` | Số tài liệu theo từng câu (giữ bài có điểm RRF ≥ tau·top-1), TB 180, 75% Việt | vài giây |
-| 6 | `python make_submission.py --docs … --chunk-chars 4000:400 --compress lzma-xl` | Mỗi tài liệu 1 đoạn ~4.000 ký tự quanh chỗ khớp nhất → `submissions/*.zip` (< 100 MB) | ~15 phút (có bộ nhớ đệm) |
+| 5 | `python qwen_rerank.py --docs … --pool 150,50 --quota 0,0 --model Qwen/Qwen3-Reranker-4B --text passage --passage-chars 1200` | Qwen3-Reranker-4B chấm (câu hỏi, tiêu đề + đoạn khớp nhất) cho top 150 Việt + 50 Trung → thứ tự theo P("yes") | ~6 giờ lần đầu; có cache → vài phút |
+| 6 | `python dyn_cut.py --docs … --mean 140 --vi-share 0.75` | Số tài liệu theo từng câu (giữ bài có điểm ≥ tau·top-1), TB 140, 75% Việt | vài giây |
+| 7 | `python make_submission.py --docs … --chunk-chars 4000:400 --compress lzma-xl` | Mỗi tài liệu 1 đoạn ~4.000 ký tự quanh chỗ khớp nhất → `submissions/*.zip` (< 100 MB) | ~15 phút (có bộ nhớ đệm) |
 
-**Bước 4–6 gộp trong một lệnh** (mặc định = bài tốt nhất 0,3427): `./build_submission.sh <tên>`
+**Bước 4–7 gộp trong một lệnh** (mặc định = bài tốt nhất 0,3606): `./build_submission.sh <tên>`.
+Tái tạo đúng bài 0,3606 trên máy khác, không cần GPU cho reranker: `CAND=results/D_bi02.jsonl ./build_submission.sh best`
+(danh sách ứng viên + điểm reranker đều có trong git).
 
 \* trên RTX 5060 Ti 16GB, 32 luồng CPU, 29GB RAM. Mọi bước dừng bằng `Ctrl+C` và chạy lại sẽ tiếp tục.
 
@@ -49,14 +52,14 @@ Phụ trợ trong `scripts/crawl/` (chạy từ gốc repo, vd `python scripts/c
 
 ```
 clean_corpus.py · embed_corpus.py · translate_queries.py     bước 1–3 (chạy một lần)
-search_docs.py · dyn_cut.py · make_submission.py              bước 4–6 (mỗi bài nộp)
-build_submission.sh                                           bước 4–6 trong một lệnh
+search_docs.py · qwen_rerank.py · dyn_cut.py · make_submission.py   bước 4–7 (mỗi bài nộp)
+build_submission.sh                                           bước 4–7 trong một lệnh
 scripts/crawl/                                                crawl bổ sung (đã xong, giữ để tham khảo)
 docs/                                                         EXPERIMENTS (nhật ký), PROGRESS, PLAN, CODEMAP; archive/ = tài liệu cũ
 .claude/ · tools/ · AGENTS.md · CLAUDE.md · start.sh/.ps1     bộ công cụ agent
-results/                                                      queries_translated + danh sách ứng viên dùng chung (D_wide_son*.jsonl)
+results/                                                      queries_translated, D_bi02.jsonl (ứng viên), qwen_rerank_cache_q3r4B_passage.pkl
 ```
-Code của các thí nghiệm đã bác bỏ (reranker, HyDE, PRF, vector phần sau bài, Qwen3-Embedding) đã xoá khỏi cây; xem lại bằng `git log -- <tên file>`.
+Code của các thí nghiệm đã bác bỏ (bge-reranker, HyDE, PRF, vector phần sau bài, Qwen3-Embedding, BM25 cặp chữ Hán, tách câu hỏi nhiều ý) đã xoá khỏi cây; xem lại bằng `git log -- <tên file>`.
 
 ### Chi tiết các bước chính
 
@@ -80,7 +83,9 @@ ZIP chứa **đúng 1 file** `.json` (không thư mục con) → leaderboard.aig
 | 20 Trung | 0,061 | 0,046 | 0,0536 |
 | 20 Anh | 0 | 0 | 0 |
 | 40 Việt + 50 Trung + 10 Anh (100 tài liệu) | 0,238 | 0,084 | 0,1606 |
-| RRF k=150, TB 180 tài liệu/câu (75% Việt), chunk 4.000 ký tự cho mọi tài liệu (exp-049) | 0,373 | 0,313 | **0,3427** |
+| RRF k=150, TB 180 tài liệu/câu (75% Việt), chunk 4.000 ký tự cho mọi tài liệu (exp-049) | 0,373 | 0,313 | 0,3427 |
+| + BM25 cặp âm tiết Việt (trọng số 0,2) (exp-057) | 0,375 | 0,314 | 0,3442 |
+| + Qwen3-Reranker-4B, cắt theo điểm reranker TB 140 tài liệu/câu (exp-073) | 0,394 | 0,327 | **0,3606** |
 
 Toàn bộ 50+ thí nghiệm: `docs/EXPERIMENTS.md`.
 

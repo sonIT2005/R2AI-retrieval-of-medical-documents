@@ -31,7 +31,6 @@ OUT = "results"
 INDEX = "index/bm25"
 QUERIES = "btc_data_v2/query.parquet"
 TRANSLATED = "results/queries_translated.jsonl"
-SUBQUERIES = "results/queries_sub.jsonl"
 PUBMED = "pubmed.ncbi.nlm.nih.gov"
 GROUPS = ("vi", "zh", "en")
 K1, B = 1.2, 0.75
@@ -40,23 +39,18 @@ BM25_MAX_CHARS = 10000
 POOL = 300
 RRF_K = 60
 # BM25 trên câu dịch lệch từ vựng với bài gốc (top-10 chỉ trùng ~3% với dense) → trọng số thấp
-DEFAULT_WEIGHTS = ("bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,bm25bi_vi=0.2,"  # cấu hình tốt nhất (exp-010/029/057)
-                   "bm25bi_zh=0,dsub_vi=0,dsub_zh=0")  # đã bác bỏ (exp-059/060, 063–065)
+DEFAULT_WEIGHTS = "bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,bm25bi_vi=0.2"  # cấu hình tốt nhất (exp-010/029/057)
 
 RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "bm25_vi": ("bm25", "vi", "vi"),
     "bm25_zh": ("bm25", "zh", "zh"),
     "bm25_en": ("bm25", "en", "en"),
     "bm25bi_vi": ("bm25", "vi", "vi"),  # BM25 trên cặp âm tiết liền nhau ("huyết áp", "đau đầu")
-    "bm25bi_zh": ("bm25", "zh", "zh"),  # BM25 trên cặp chữ Hán liền nhau (không qua jieba) của câu dịch Trung
     "dense_vi_vi": ("dense", "vi", "vi"),
     "dense_vi_zh": ("dense", "vi", "zh"),
     "dense_vi_en": ("dense", "vi", "en"),
     "dense_zh_zh": ("dense", "zh", "zh"),
     "dense_en_en": ("dense", "en", "en"),
-    # câu con của decompose_queries.py (mỗi câu một bệnh) → tìm riêng từng câu, gộp RRF về 1 danh sách/câu hỏi
-    "dsub_vi": ("dense", "vsub", "vi"),
-    "dsub_zh": ("dense", "vsub", "zh"),
 }  # fuse() chỉ gộp các lượt có tên ở đây — file results/run_*.jsonl lạ bị bỏ qua
 
 _hv = dict(n_features=N_FEATURES, alternate_sign=False, norm=None, dtype=np.float32)
@@ -67,11 +61,8 @@ VEC = {
     # cặp âm tiết: nhiều tổ hợp hơn từ đơn → 2^24 chiều để giảm va chạm băm
     "vi_bi": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b", ngram_range=(2, 2),
                                **{**_hv, "n_features": 2 ** 24}),
-    # cặp chữ liền nhau (cách chuẩn của tìm kiếm tiếng Trung) — chạy trên văn bản gốc, không tách từ
-    "zh_bi": HashingVectorizer(lowercase=True, analyzer="char", ngram_range=(2, 2),
-                               **{**_hv, "n_features": 2 ** 24}),
 }
-BM25_VEC = {"bm25bi_vi": "vi_bi", "bm25bi_zh": "zh_bi"}  # lượt BM25 dùng bộ tách khác nhóm ngôn ngữ của nó (mặc định = tên nhóm)
+BM25_VEC = {"bm25bi_vi": "vi_bi"}  # lượt BM25 dùng bộ tách khác nhóm ngôn ngữ của nó (mặc định = tên nhóm)
 
 
 # ── Dữ liệu ──────────────────────────────────────────────────────────────
@@ -101,11 +92,6 @@ def load_queries():
             print(f"  Bản dịch chưa đủ ({len(tr)}/{len(base)} câu) → bỏ qua các lượt cần bản dịch")
     else:
         print("  Chưa có bản dịch → chỉ chạy các lượt dùng câu hỏi tiếng Việt")
-    if os.path.exists(SUBQUERIES):
-        with open(SUBQUERIES, encoding="utf-8") as f:
-            sub = {r["id"]: r["subs"] for r in map(json.loads, f)}
-        if all(i in sub for i, _ in base):
-            qs["vsub"] = [(i, t) for i, _ in base for t in sub[i]]  # nhiều dòng cùng id
     return qs
 
 
@@ -115,22 +101,6 @@ def save_run(name, queries, ids, scores):
         for (qid, _), d, s in zip(queries, ids, scores):
             f.write(json.dumps({"query_id": qid, "doc_ids": [int(x) for x in d],
                                 "scores": [round(float(x), 5) for x in s]}) + "\n")
-
-
-def merge_subs(queries, ids, scores, k=60):
-    """Các câu con cùng id → RRF thành 1 danh sách POOL tài liệu (thứ tự câu hỏi giữ như lần đầu gặp)."""
-    acc = {}
-    for (qid, _), d, s in zip(queries, ids, scores):
-        sc = acc.setdefault(qid, {})
-        for rank, x in enumerate(d):
-            sc[x] = sc.get(x, 0.0) + 1 / (k + rank + 1)
-    out_q, out_i, out_s = [], [], []
-    for qid, sc in acc.items():
-        best = sorted(sc.items(), key=lambda x: -x[1])[:POOL]
-        out_q.append((qid, ""))
-        out_i.append([x for x, _ in best])
-        out_s.append([v for _, v in best])
-    return out_q, out_i, out_s
 
 
 def load_run(name):
@@ -245,10 +215,7 @@ def run_dense(names, qs, doc_group):
             for srow, irow in zip(s.float().cpu().numpy(), top.cpu().numpy()):
                 all_ids.append(ids[rows[irow]])
                 all_scores.append(srow)
-        if qlang == "vsub":
-            save_run(name, *merge_subs(qs[qlang], all_ids, all_scores))
-        else:
-            save_run(name, qs[qlang], all_ids, all_scores)
+        save_run(name, qs[qlang], all_ids, all_scores)
         print(f"  {name}: xong ({len(rows):,} tài liệu nhóm {g})")
         del Eg
         torch.cuda.empty_cache()

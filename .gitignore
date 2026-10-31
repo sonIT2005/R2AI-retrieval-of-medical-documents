@@ -8,12 +8,10 @@
 !embed_corpus.py
 !search_docs.py
 !translate_queries.py
-!decompose_queries.py
 !make_submission.py
 !build_submission.sh
 !dyn_cut.py
 !qwen_rerank.py
-!rerank.py
 !scripts/
 !scripts/crawl/
 !scripts/crawl/find_missing.py
@@ -22,10 +20,10 @@
 !results/
 results/*
 !results/queries_translated.jsonl
-!results/queries_sub.jsonl
-# Danh sách ứng viên dựng trên máy Sơn — cả đội dùng chung, khỏi lệch do khác dữ liệu/lượt tìm
-!results/D_wide_son.jsonl
-!results/D_wide_son_k150.jsonl
+# Bài tốt nhất 0,3606: danh sách ứng viên (máy Sơn) + điểm Qwen3-Reranker-4B → tái tạo không cần GPU 6 giờ
+#   CAND=results/D_bi02.jsonl ./build_submission.sh best
+!results/D_bi02.jsonl
+!results/qwen_rerank_cache_q3r4B_passage.pkl
 
 # Bộ công cụ agent (ai-contest-kit v10): luật cho AI, lệnh, hook, tài liệu tiến độ, hội đồng model
 !AGENTS.md
