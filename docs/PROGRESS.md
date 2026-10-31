@@ -8,17 +8,18 @@
 ## Điểm tốt nhất
 | Metric local | LB public | File nộp | Thí nghiệm | Ghi chú |
 |---|---|---|---|---|
-| — | **0,3442** | bi02 | exp-057 | `./build_submission.sh best` (mặc định = cấu hình này: k=150, vi-share 0,75, TB 180, bm25bi_vi 0,2). Cần chỉ mục index/bm25/vi_bi: `python search_docs.py --runs bm25bi_vi` (~30 giây) |
+| — | **0,3593** | id 7828 (đang hiển thị) | exp-069 | Nền bi02 → `qwen_rerank.py --docs results/D_bi02.jsonl --pool 150,50 --quota 0,0 --model Qwen/Qwen3-Reranker-4B --text passage --passage-chars 1200 --tokens-per-batch 12000` (~6 giờ GPU; điểm lưu ở results/qwen_rerank_cache_q3r4B_passage.pkl) → `dyn_cut.py --docs results/D_bi02_q3r4Bprr_all.jsonl --mean 160 --vi-share 0.75 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl` |
+| — | 0,3442 | bi02 | exp-057 | `./build_submission.sh best` (mặc định = cấu hình này: k=150, vi-share 0,75, TB 180, bm25bi_vi 0,2). Cần chỉ mục index/bm25/vi_bi: `python search_docs.py --runs bm25bi_vi` (~30 giây) |
 | — | 0,3437 | id 7478 | exp-054 | `./build_submission.sh bi033 150 0.75 180 bm25bi_vi=0.33` — như 0,3427 + lượt BM25 cặp âm tiết (bm25bi_vi, chỉ mục index/bm25/vi_bi, dựng ~30 giây) trọng số 0,33 |
 | — | 0,3427 | id 7280 | exp-049 | `./build_submission.sh k150vs75` (= `search_docs.py --only-fuse --quota 300,130,0 --rrf-k 150` → `dyn_cut.py --mean 180 --vi-share 0.75 --lo 80 --hi 400` → `make_submission.py --chunk-chars 4000:400 --compress lzma-xl`, 85 MB). k=200 cũng 0,3427. Danh sách ứng viên: `results/D_wide_son_k150.jsonl` (trong git) |
 | — | 0,3400 | id 7270 | exp-046 | như trên, k=100, vi-share 0,7 |
 | — | 0,3365 | id 7238 | exp-041 | k=60, vi-share 0,7 (`results/D_wide_son.jsonl`) |
 | — | 0,3193 | id 7095 | exp-040 | D_wide trên máy Nguyen — kém D_wide_son cùng pipeline, chưa rõ vì sao (xem Vướng mắc) |
 
-## Đang làm (30/10)
-- 30/10: BM25 cặp chữ Hán (0,3426 / 0,3436), tách câu hỏi nhiều ý (0,3396 / 0,3244 / 0,3271), hướng B (đo, không nộp) — đều bác bỏ.
-- Bài học: đáp án gán theo CẢ câu hỏi (câu con kéo bài chỉ nói một ý → precision giảm, recall không tăng).
-- Còn lại đến hết public (31/10 23:59): chọn bài hiển thị = bi02; chuẩn bị private; working-notes paper.
+## Đang làm (31/10 — ngày cuối public, hạn 23:59)
+- Qwen3-Reranker-4B (prr, cắt theo P(yes)): TB 180 → 0,3479 · **160 → 0,3593** · 190 → 0,3400; vi-share 0,70 → 0,3493, 0,80 → 0,3442.
+- Đã dựng (chưa nén): results/DC_prr_m140, DC_prr_m120, DC_prr_m160vs70, DC_prr_m140vs70 (exp-073…076).
+- Sau đó: working-notes paper; dọn thư mục (đề xuất trước, người dùng duyệt).
 
 ## Đã xong (mới nhất ở trên, tối đa 10 dòng)
 - 27/10 — dọn repo: xoá code thí nghiệm bác bỏ (rerank, qwen_rerank, hyde, prf, embed_tail, chunk_quota, Qwen3-Embedding

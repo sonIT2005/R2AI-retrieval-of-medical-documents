@@ -77,10 +77,14 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-066 | 30/10 | Hướng C: **Qwen3-Reranker-4B** (06/2025) chấm (câu hỏi ĐẦY ĐỦ, tiêu đề + đoạn khớp nhất ≤1.200 ký tự) cho top Việt/Trung của bi02; thứ tự mới = RRF(cũ, reranker), phần ngoài pool giữ thứ tự cũ → dyn_cut TB 180 vs 0,75. Giả thuyết: exp-063 cho thấy đáp án gán theo CẢ câu hỏi — đúng thứ cross-encoder chấm; 0.6B (exp-041) quá yếu. Bác bỏ nếu ≤ 0,3442 | — | **+0,0037** (prr) | prr (id 7820): **0,3479** · prrf (id 7821): 0,3388 | XÁC NHẬN (prr) — BEST: pool 150 Việt + 50 Trung, 240K cặp ~6 giờ. prr cắt dyn_cut theo P(yes) của reranker → số tài liệu thích nghi theo câu (p10 143, p90 200 = trần pool); prrf cắt theo điểm RRF phẳng (171–189) → mất tính thích nghi, −0,0054. 4B mạnh hơn hẳn 0.6B (exp-041 +0,0004) | 1a0b345 |
 | exp-067 | 30/10 | Công thức trang thi: overlap = LCS / max(\|c\|,\|g\|) (không phải /\|g\|) → chunk quá dài có thể bị phạt. Thử bi02 với chunk **3.000** ký tự | — | −0,0045 | 0,3397 · 0,3748 · 0,3045 (R chunk 0,4652) | BÁC BỎ "4.000 quá dài" | 79b5f6a |
 | exp-068 | 30/10 | bi02 với chunk **2.500** ký tự | — | −0,0109 | 0,3333 · 0,3748 · 0,2919 (R chunk 0,4456) | BÁC BỎ: 2.500 < 3.000 < 4.000 đều đặn (F2 doc giữ nguyên) ⇒ chunk tham chiếu thường dài vài nghìn ký tự; 4.000 ~ tối ưu (6.000 cho top-30 chỉ +0,0002, exp-039) | 79b5f6a |
-| exp-069 | 31/10 | prr, dyn_cut TB **160** | — | — | chưa nộp | | chưa |
-| exp-070 | 31/10 | prr, dyn_cut TB **190** (gần trần pool 200) | — | — | chưa nộp | | chưa |
-| exp-071 | 31/10 | prr, vi-share **0,70** | — | — | chưa nộp | | chưa |
-| exp-072 | 31/10 | prr, vi-share **0,80** | — | — | chưa nộp | | chưa |
+| exp-069 | 31/10 | prr, dyn_cut TB **160** | — | **+0,0114** | id 7828: **0,3593** | XÁC NHẬN mạnh — BEST: reranker xếp đúng hơn → cắt sớm hơn có lợi (khác nền cũ: TB 160 < 180) | 3a45fe1 |
+| exp-070 | 31/10 | prr, dyn_cut TB **190** (gần trần pool 200) | — | −0,0079 | id 7829: 0,3400 | BÁC BỎ: 190 gần trần pool, câu nào cũng lấy gần hết → mất thích nghi | 3a45fe1 |
+| exp-071 | 31/10 | prr, vi-share **0,70** | — | +0,0014 | id 7830: 0,3493 | XÁC NHẬN nhẹ: sau rerank 70% Việt > 75% (TB thực 176 vì Trung chạm trần pool 50) | 3a45fe1 |
+| exp-072 | 31/10 | prr, vi-share **0,80** | — | −0,0037 | id 7831: 0,3442 | BÁC BỎ | 3a45fe1 |
+| exp-073 | 31/10 | prr, TB **140** (vs 0,75) — 180 → 160 tăng +0,011, đỉnh còn thấp hơn? | — | — | chưa nộp | | chưa |
+| exp-074 | 31/10 | prr, TB **120** | — | — | chưa nộp | | chưa |
+| exp-075 | 31/10 | prr, TB 160 + vi-share **0,70** (gộp hai thay đổi tốt) | — | — | chưa nộp | | chưa |
+| exp-076 | 31/10 | prr, TB 140 + vi-share 0,70 | — | — | chưa nộp | | chưa |
 | — | 30/10 | Hướng B (đo, không nộp): 400 bài Việt ở 30 hạng đầu của bi02 — so bản sạch với toàn bộ chữ trên trang (body_lines). Dòng dài ≥80 ký tự bị bỏ = trung vị 11% độ dài bản sạch, nhưng xem mẫu (longchau, medlatec, vinmec, suckhoedoisong…) toàn là tiêu đề bài liên quan, miễn trừ trách nhiệm, form đặt lịch, quảng cáo, chú thích ảnh; không bài nào bị cắt cụt | — | — | — | BÁC BỎ "văn bản sạch thiếu nội dung đáp án" → không tốn lượt nộp. Hụt chunk 18% nhiều khả năng do chọn sai phần trong bài dài | — |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho
