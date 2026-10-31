@@ -85,6 +85,7 @@ Local = không có (không có nhãn dev). LB = public 600 câu, bộ chấm t�
 | exp-074 | 31/10 | prr, TB **120** | — | — | không nộp (hết lượt public) | | chưa |
 | exp-075 | 31/10 | prr, TB 160 + vi-share **0,70** (gộp hai thay đổi tốt) | — | — | chưa nộp | | chưa |
 | exp-076 | 31/10 | prr, TB 140 + vi-share 0,70 | — | — | không nộp (hết lượt public) | | chưa |
+| — | 31/10 | **Bộ dò** (llm_judge.py): Qwen3-14B (≤15B) chấm log-odds Yes/No "bác sĩ trả lời ĐÚNG câu hỏi này có dùng tài liệu không" cho pool 22 cấu hình đã có điểm public (TB 275 tài liệu/câu), 300 câu mẫu cố định (seed 2026). Ngưỡng toàn cục sao cho TB G ≈ 71 tài liệu/câu (khớp đáp án thật). Thử 0–3 điểm trước: quá dễ dãi (243/288 ≥2) → bỏ; P(yes) bão hoà 1,000 → dùng log-odds. Tin được nếu Spearman với LB ≥ 0,8 | — | — | đang chấm | | chưa |
 | — | 30/10 | Hướng B (đo, không nộp): 400 bài Việt ở 30 hạng đầu của bi02 — so bản sạch với toàn bộ chữ trên trang (body_lines). Dòng dài ≥80 ký tự bị bỏ = trung vị 11% độ dài bản sạch, nhưng xem mẫu (longchau, medlatec, vinmec, suckhoedoisong…) toàn là tiêu đề bài liên quan, miễn trừ trách nhiệm, form đặt lịch, quảng cáo, chú thích ảnh; không bài nào bị cắt cụt | — | — | — | BÁC BỎ "văn bản sạch thiếu nội dung đáp án" → không tốn lượt nộp. Hụt chunk 18% nhiều khả năng do chọn sai phần trong bài dài | — |
 
 **Đo bằng LB (không cần nhãn):** mỗi bài trả 7 số; số trúng = P × số mục nộp, nên hai bài chỉ khác một lát cho

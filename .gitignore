@@ -12,6 +12,7 @@
 !build_submission.sh
 !dyn_cut.py
 !qwen_rerank.py
+!llm_judge.py
 !scripts/
 !scripts/crawl/
 !scripts/crawl/find_missing.py
@@ -24,6 +25,10 @@ results/*
 #   CAND=results/D_bi02.jsonl ./build_submission.sh best
 !results/D_bi02.jsonl
 !results/qwen_rerank_cache_q3r4B_passage.pkl
+# Nhãn "bộ dò" (Qwen3-14B) — tốn ~8 giờ GPU, dùng chung cho cả đội
+!results/judge/
+results/judge/*
+!results/judge/labels.jsonl
 
 # Bộ công cụ agent (ai-contest-kit v10): luật cho AI, lệnh, hook, tài liệu tiến độ, hội đồng model
 !AGENTS.md
