@@ -24,7 +24,7 @@
 - Tài nguyên: RTX 5060 Ti 16GB, 32 luồng CPU, 29GB RAM. Dữ liệu (~75GB) KHÔNG nằm trong repo (xem README).
 - Lệnh chuẩn (chạy từ gốc repo; làm sạch: conda base Py3.14; còn lại: conda env `vibiomir` Py3.11):
   - Làm sạch: `python clean_corpus.py` · Vector: `python embed_corpus.py` · Dịch: `python translate_queries.py`
-  - Tìm (8 lượt → results/run_*.jsonl): `python search_docs.py --quota 300,130,0 --rrf-k 150` (`--only-fuse` chỉ gộp lại, vài giây)
+  - Tìm (9 lượt → results/run_*.jsonl): `python search_docs.py --quota 300,130,0 --rrf-k 150` (`--only-fuse` chỉ gộp lại, vài giây)
   - Tạo file nộp (gộp → Qwen3-Reranker-4B → dyn_cut → make_submission, mặc định = BEST 0,3606): `./build_submission.sh <tên> [mean] [vi-share] [weights]`
     (`CAND=results/D_bi02.jsonl` = dùng ứng viên trong git → đúng bài 0,3606, reranker dùng cache, không cần GPU 6 giờ)
   - **Eval chuẩn**: CHƯA có eval local (không có nhãn) → thước đo duy nhất là LB public (600 câu).
