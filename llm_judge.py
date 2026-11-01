@@ -257,6 +257,13 @@ def evaluate(args):
                 if r["query_id"] in by_q:
                     dense.setdefault(r["query_id"], set()).update(r["doc_ids"][:args.dense_k])
         by_q = {q: {d: (v if d in dense.get(q, ()) else -99.0) for d, v in m.items()} for q, m in by_q.items()}
+    if args.zh_shift:
+        # Giám khảo cho tài liệu Trung "liên quan" nhiều hơn Việt (38% so với 32% trong bi02), trong khi các bài nộp đầu
+        # (15–16/10) cho độ chính xác Việt ≈ 2,4× Trung → trừ zh_shift vào log-odds tài liệu Trung. Δ = 16 cho tỉ lệ 2,3×;
+        # kết quả ổn định trong 14–18 (151 câu: cặp chênh ≥0,005 xếp đúng 84% → 99%, Pearson 0,88 → 0,94).
+        lang = {d: l for c in cfgs.values() for ids, ls in c.values() for d, l in zip(ids, ls)}
+        by_q = {q: {d: (v - args.zh_shift if lang.get(d) == "zh" and v > -99 else v) for d, v in m.items()}
+                for q, m in by_q.items()}
     # chỉ dùng câu đã chấm ĐỦ pool (đang chấm dở → câu cuối thiếu nhãn sẽ làm lệch F2)
     qids = sorted(q for q in by_q if all(d in by_q[q] for c in cfgs.values() for d in c[q][0]))
     allp = np.sort([p for q in qids for p in by_q[q].values() if p > -99])[::-1]
@@ -297,6 +304,7 @@ def main():
     ap.add_argument("--head-chars", type=int, default=600)
     ap.add_argument("--passage-chars", type=int, default=1400)
     ap.add_argument("--docs", default=None, help="eval: chấm một danh sách nộp (DC_*.jsonl)")
+    ap.add_argument("--zh-shift", type=float, default=16.0, help="eval: trừ vào log-odds tài liệu Trung (0 = tắt)")
     ap.add_argument("--dense-k", type=int, default=300, help="eval: chỉ tài liệu trong top-K dense mới có thể được tính đúng (0 = tắt)")
     args = ap.parse_args()
     {"build": lambda: build(), "judge": lambda: judge(args), "eval": lambda: evaluate(args)}[args.cmd]()
