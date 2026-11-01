@@ -225,9 +225,19 @@ def rank_corr(a, b):
     return float(np.corrcoef(ra, rb)[0, 1]), float(np.corrcoef(a, b)[0, 1])
 
 
-def combined_labels(models):
-    """Nhiều giám khảo: chuẩn hoá z-score log-odds của từng giám khảo rồi lấy trung bình (chỉ cặp mọi giám khảo đã chấm)."""
-    per = [load_labels(labels_path(m)) for m in models]
+# Giám khảo cho tài liệu Trung "liên quan" nhiều hơn mức các bài nộp đầu (15–16/10) cho thấy (độ chính xác Việt ≈ 2,4×
+# Trung) → trừ Δ vào log-odds GỐC của tài liệu Trung, Δ riêng từng giám khảo, chọn để tỉ lệ Việt/Trung trên bi02 ≈ 2,4×:
+# qwen3:14b 38%/32% → Δ 16 (2,6×); gemma3:12b vốn khắt khe hơn (1,6×) → Δ 3. Qwen 300 câu: cặp đúng 85% → 99%.
+ZH_SHIFT = {"qwen3:14b": 16.0, "gemma3:12b": 3.0}
+
+
+def combined_labels(models, lang, shift):
+    """Trừ Δ cho tài liệu Trung trên log-odds gốc từng giám khảo; nhiều giám khảo → z-score từng giám khảo rồi lấy
+    trung bình (chỉ cặp mọi giám khảo đã chấm). shift < 0 → dùng ZH_SHIFT theo mô hình."""
+    per = []
+    for m in models:
+        dz = ZH_SHIFT.get(m, 0.0) if shift < 0 else shift
+        per.append({k: v - (dz if lang.get(k[1]) == "zh" else 0.0) for k, v in load_labels(labels_path(m)).items()})
     if len(per) == 1:
         return per[0]
     common = set.intersection(*(set(p) for p in per))
@@ -241,13 +251,16 @@ def combined_labels(models):
 
 def evaluate(args):
     models = args.model.split(",")
-    labels = combined_labels(models)
-    print(f"Giám khảo: {' + '.join(models)}")
+    cfgs = {name: load_lists(f"{DIR}/cfg_{name}.jsonl") for name, *_ in CONFIGS
+            if os.path.exists(f"{DIR}/cfg_{name}.jsonl")}
+    extra = [load_lists(p) for p in glob.glob(f"{DIR}/cfg_x_*.jsonl")] + ([load_lists(args.docs)] if args.docs else [])
+    lang = {d: l for c in list(cfgs.values()) + extra for ids, ls in c.values() for d, l in zip(ids, ls)}
+    labels = combined_labels(models, lang, args.zh_shift)
+    print(f"Giám khảo: {' + '.join(models)} | Δ Trung: "
+          + ", ".join(f"{m} {ZH_SHIFT.get(m, 0.0) if args.zh_shift < 0 else args.zh_shift:g}" for m in models))
     by_q = {}
     for (q, d), g in labels.items():
         by_q.setdefault(q, {})[d] = g
-    cfgs = {name: load_lists(f"{DIR}/cfg_{name}.jsonl") for name, *_ in CONFIGS
-            if os.path.exists(f"{DIR}/cfg_{name}.jsonl")}
     if args.dense_k:
         # Biến thể của bộ dò: chỉ tài liệu có trong top-K của các lượt dense mới có thể được tính đúng. Chọn vì tương quan
         # với các bài nộp public tốt hơn (68 câu: Pearson 0,53 → 0,88). Chỉ dùng để ĐO, không dùng để chỉnh hệ thống.
@@ -257,13 +270,6 @@ def evaluate(args):
                 if r["query_id"] in by_q:
                     dense.setdefault(r["query_id"], set()).update(r["doc_ids"][:args.dense_k])
         by_q = {q: {d: (v if d in dense.get(q, ()) else -99.0) for d, v in m.items()} for q, m in by_q.items()}
-    if args.zh_shift:
-        # Giám khảo cho tài liệu Trung "liên quan" nhiều hơn Việt (38% so với 32% trong bi02), trong khi các bài nộp đầu
-        # (15–16/10) cho độ chính xác Việt ≈ 2,4× Trung → trừ zh_shift vào log-odds tài liệu Trung. Δ = 16 cho tỉ lệ 2,3×;
-        # kết quả ổn định trong 14–18 (151 câu: cặp chênh ≥0,005 xếp đúng 84% → 99%, Pearson 0,88 → 0,94).
-        lang = {d: l for c in cfgs.values() for ids, ls in c.values() for d, l in zip(ids, ls)}
-        by_q = {q: {d: (v - args.zh_shift if lang.get(d) == "zh" and v > -99 else v) for d, v in m.items()}
-                for q, m in by_q.items()}
     # chỉ dùng câu đã chấm ĐỦ pool (đang chấm dở → câu cuối thiếu nhãn sẽ làm lệch F2)
     qids = sorted(q for q in by_q if all(d in by_q[q] for c in cfgs.values() for d in c[q][0]))
     allp = np.sort([p for q in qids for p in by_q[q].values() if p > -99])[::-1]
@@ -304,7 +310,7 @@ def main():
     ap.add_argument("--head-chars", type=int, default=600)
     ap.add_argument("--passage-chars", type=int, default=1400)
     ap.add_argument("--docs", default=None, help="eval: chấm một danh sách nộp (DC_*.jsonl)")
-    ap.add_argument("--zh-shift", type=float, default=16.0, help="eval: trừ vào log-odds tài liệu Trung (0 = tắt)")
+    ap.add_argument("--zh-shift", type=float, default=-1, help="eval: trừ vào log-odds tài liệu Trung (-1 = theo ZH_SHIFT từng giám khảo, 0 = tắt)")
     ap.add_argument("--dense-k", type=int, default=300, help="eval: chỉ tài liệu trong top-K dense mới có thể được tính đúng (0 = tắt)")
     args = ap.parse_args()
     {"build": lambda: build(), "judge": lambda: judge(args), "eval": lambda: evaluate(args)}[args.cmd]()
