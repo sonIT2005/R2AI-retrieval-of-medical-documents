@@ -29,7 +29,11 @@ import pyarrow.parquet as pq
 from tqdm import tqdm
 
 DIR = "results/judge"
-LABELS = f"{DIR}/labels.jsonl"
+LABELS = f"{DIR}/labels.jsonl"  # nhãn của qwen3:14b; giám khảo khác: labels_<tên>.jsonl
+
+
+def labels_path(model):
+    return LABELS if model == "qwen3:14b" else f"{DIR}/labels_{model.replace(':', '-').replace('/', '_')}.jsonl"
 QUERIES = "btc_data_v2/query.parquet"
 TRANSLATED = "results/queries_translated.jsonl"
 CORPUS = "clean/corpus"
@@ -113,10 +117,10 @@ def sample(n):
     return sorted(ids[:n])
 
 
-def load_labels():
-    if not os.path.exists(LABELS):
+def load_labels(path=LABELS):
+    if not os.path.exists(path):
         return {}
-    with open(LABELS, encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return {(r["q"], r["d"]): r["s"] for r in map(json.loads, f)}
 
 
@@ -125,7 +129,8 @@ def judge_one(query, title, body, model):
     Token không có trong top 20 → coi log-xác suất = −40."""
     user = f"Question (Vietnamese): {query}\n\nDocument title: {title}\nDocument excerpt:\n{body}\n\nRelevant?"
     req = json.dumps({
-        "model": model, "stream": False, "think": False, "logprobs": True, "top_logprobs": 20,
+        "model": model, "stream": False, "logprobs": True, "top_logprobs": 20,
+        **({"think": False} if model.startswith("qwen3") else {}),  # Gemma không có chế độ suy nghĩ
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
         "options": {"temperature": 0, "num_ctx": 4096, "num_predict": 1},
     }).encode()
@@ -152,7 +157,8 @@ def judge(args):
             ids, ls = c[q]
             pool.setdefault(q, set()).update(ids)
             lang.update(zip(ids, ls))
-    done = load_labels()
+    out_path = labels_path(args.model)
+    done = load_labels(out_path)
     todo = [(q, d) for q in qids for d in sorted(pool[q]) if (q, d) not in done]
     n_pairs = sum(len(v) for v in pool.values())
     print(f"{len(qids)} câu | pool TB {n_pairs / len(qids):.0f} tài liệu/câu = {n_pairs:,} cặp | "
@@ -186,7 +192,7 @@ def judge(args):
 
     jobs = [(qq, d) for qq, ds in by_q.items() for d in ds]
     errors = 0
-    with open(LABELS, "a", encoding="utf-8") as fout, ThreadPoolExecutor(args.workers) as pool_ex:
+    with open(out_path, "a", encoding="utf-8") as fout, ThreadPoolExecutor(args.workers) as pool_ex:
         futs = {pool_ex.submit(judge_one, qtext["vi"][qq], *body_of(qq, d), args.model): (qq, d)
                 for qq, d in jobs}  # jobs theo thứ tự câu → dừng giữa chừng chỉ thiếu vài câu cuối
         for f in tqdm(as_completed(futs), total=len(futs), unit="cặp", smoothing=0.02):
@@ -199,7 +205,7 @@ def judge(args):
                 continue
             fout.write(json.dumps({"q": qq, "d": int(d), "s": round(g, 5)}) + "\n")
             fout.flush()
-    print(f"Xong → {LABELS}" + (f" ({errors} lỗi — chạy lại để chấm nốt)" if errors else ""))
+    print(f"Xong → {out_path}" + (f" ({errors} lỗi — chạy lại để chấm nốt)" if errors else ""))
 
 
 def f2_of(lists, by_q, qids, thr):
@@ -219,8 +225,24 @@ def rank_corr(a, b):
     return float(np.corrcoef(ra, rb)[0, 1]), float(np.corrcoef(a, b)[0, 1])
 
 
+def combined_labels(models):
+    """Nhiều giám khảo: chuẩn hoá z-score log-odds của từng giám khảo rồi lấy trung bình (chỉ cặp mọi giám khảo đã chấm)."""
+    per = [load_labels(labels_path(m)) for m in models]
+    if len(per) == 1:
+        return per[0]
+    common = set.intersection(*(set(p) for p in per))
+    z = []
+    for p in per:
+        v = np.array([p[k] for k in common])
+        mu, sd = v.mean(), v.std() or 1.0
+        z.append({k: (p[k] - mu) / sd for k in common})
+    return {k: float(np.mean([zz[k] for zz in z])) for k in common}
+
+
 def evaluate(args):
-    labels = load_labels()
+    models = args.model.split(",")
+    labels = combined_labels(models)
+    print(f"Giám khảo: {' + '.join(models)}")
     by_q = {}
     for (q, d), g in labels.items():
         by_q.setdefault(q, {})[d] = g
@@ -257,7 +279,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["build", "judge", "eval"])
     ap.add_argument("--n", type=int, default=300, help="Số câu hỏi mẫu (cố định theo seed; tăng n giữ nguyên câu cũ)")
-    ap.add_argument("--model", default="qwen3:14b")
+    ap.add_argument("--model", default="qwen3:14b", help="judge: một mô hình; eval: có thể nhiều, cách nhau dấu phẩy")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--head-chars", type=int, default=600)
     ap.add_argument("--passage-chars", type=int, default=1400)
