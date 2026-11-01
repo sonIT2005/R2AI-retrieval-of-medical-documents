@@ -248,9 +248,18 @@ def evaluate(args):
         by_q.setdefault(q, {})[d] = g
     cfgs = {name: load_lists(f"{DIR}/cfg_{name}.jsonl") for name, *_ in CONFIGS
             if os.path.exists(f"{DIR}/cfg_{name}.jsonl")}
+    if args.dense_k:
+        # Đáp án BTC dường như chỉ gồm tài liệu một hệ dense tìm được (bi1: 23% tài liệu ngoài top-300 dense → LB −0,045,
+        # giám khảo thuần không thấy). Tài liệu ngoài top-K của mọi lượt dense → coi là KHÔNG đúng.
+        dense = {}
+        for run in ("dense_vi_vi", "dense_vi_zh", "dense_zh_zh"):
+            for r in map(json.loads, open(f"results/run_{run}.jsonl", encoding="utf-8")):
+                if r["query_id"] in by_q:
+                    dense.setdefault(r["query_id"], set()).update(r["doc_ids"][:args.dense_k])
+        by_q = {q: {d: (v if d in dense.get(q, ()) else -99.0) for d, v in m.items()} for q, m in by_q.items()}
     # chỉ dùng câu đã chấm ĐỦ pool (đang chấm dở → câu cuối thiếu nhãn sẽ làm lệch F2)
     qids = sorted(q for q in by_q if all(d in by_q[q] for c in cfgs.values() for d in c[q][0]))
-    allp = np.sort([p for q in qids for p in by_q[q].values()])[::-1]
+    allp = np.sort([p for q in qids for p in by_q[q].values() if p > -99])[::-1]
     # ngưỡng toàn cục sao cho TB số tài liệu "đúng" mỗi câu = G (đáp án thật: trung vị 60, TB 71 tài liệu/câu)
     thrs = {G: float(allp[min(len(allp) - 1, G * len(qids))]) for G in (50, 71, 100)} if qids else {}
     print(f"{len(qids)} câu chấm đủ ({len(by_q)} có nhãn), {len(labels):,} cặp | log-odds trung vị "
@@ -272,7 +281,11 @@ def evaluate(args):
     print(df.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
     for t in cols:
         sp, pe = rank_corr(df["LB"], df[t])
-        print(f"  {t}: tương quan hạng (Spearman) với điểm public {sp:+.3f} | Pearson {pe:+.3f}")
+        # cặp cấu hình chênh nhau ≥ 0,005 trên LB (nhỏ hơn thì cả LB lẫn bộ dò đều không phân biệt chắc chắn)
+        pairs = [(i, j) for i in range(len(df)) for j in range(len(df))
+                 if df["LB"].iloc[i] - df["LB"].iloc[j] >= 0.005]
+        ok = np.mean([df[t].iloc[i] > df[t].iloc[j] for i, j in pairs]) if pairs else float("nan")
+        print(f"  {t}: Pearson {pe:+.3f} | Spearman {sp:+.3f} | cặp chênh ≥0,005 xếp đúng {ok:.0%} ({len(pairs)} cặp)")
 
 
 def main():
@@ -284,6 +297,7 @@ def main():
     ap.add_argument("--head-chars", type=int, default=600)
     ap.add_argument("--passage-chars", type=int, default=1400)
     ap.add_argument("--docs", default=None, help="eval: chấm một danh sách nộp (DC_*.jsonl)")
+    ap.add_argument("--dense-k", type=int, default=300, help="eval: chỉ tài liệu trong top-K dense mới có thể đúng (0 = tắt)")
     args = ap.parse_args()
     {"build": lambda: build(), "judge": lambda: judge(args), "eval": lambda: evaluate(args)}[args.cmd]()
 
