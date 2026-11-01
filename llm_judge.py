@@ -249,8 +249,8 @@ def evaluate(args):
     cfgs = {name: load_lists(f"{DIR}/cfg_{name}.jsonl") for name, *_ in CONFIGS
             if os.path.exists(f"{DIR}/cfg_{name}.jsonl")}
     if args.dense_k:
-        # Đáp án BTC dường như chỉ gồm tài liệu một hệ dense tìm được (bi1: 23% tài liệu ngoài top-300 dense → LB −0,045,
-        # giám khảo thuần không thấy). Tài liệu ngoài top-K của mọi lượt dense → coi là KHÔNG đúng.
+        # Biến thể của bộ dò: chỉ tài liệu có trong top-K của các lượt dense mới có thể được tính đúng. Chọn vì tương quan
+        # với các bài nộp public tốt hơn (68 câu: Pearson 0,53 → 0,88). Chỉ dùng để ĐO, không dùng để chỉnh hệ thống.
         dense = {}
         for run in ("dense_vi_vi", "dense_vi_zh", "dense_zh_zh"):
             for r in map(json.loads, open(f"results/run_{run}.jsonl", encoding="utf-8")):
@@ -297,7 +297,7 @@ def main():
     ap.add_argument("--head-chars", type=int, default=600)
     ap.add_argument("--passage-chars", type=int, default=1400)
     ap.add_argument("--docs", default=None, help="eval: chấm một danh sách nộp (DC_*.jsonl)")
-    ap.add_argument("--dense-k", type=int, default=300, help="eval: chỉ tài liệu trong top-K dense mới có thể đúng (0 = tắt)")
+    ap.add_argument("--dense-k", type=int, default=300, help="eval: chỉ tài liệu trong top-K dense mới có thể được tính đúng (0 = tắt)")
     args = ap.parse_args()
     {"build": lambda: build(), "judge": lambda: judge(args), "eval": lambda: evaluate(args)}[args.cmd]()
 
