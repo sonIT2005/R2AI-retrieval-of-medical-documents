@@ -106,6 +106,7 @@ def main():
                     help="head = tiêu đề + đầu bài; passage = tiêu đề + đoạn khớp nhất (như chunk được nộp)")
     ap.add_argument("--passage-chars", type=int, default=2000, help="Cắt đoạn văn tối đa N ký tự")
     ap.add_argument("--tag", default=None, help="Tiền tố tên file kết quả (mặc định q3rr/q3rrf)")
+    ap.add_argument("--load-8bit", action="store_true", help="Nạp trọng số 8-bit (cần bitsandbytes) — cho Qwen3-Reranker-8B")
     ap.add_argument("--shard", type=int, default=40000, help="Số cặp mỗi khối tách token + chấm (giới hạn RAM)")
     args = ap.parse_args()
     if args.model == MODEL and args.text == "head":
@@ -174,8 +175,14 @@ def main():
         import torch
         from transformers import AutoTokenizer, AutoModelForCausalLM
         tok = AutoTokenizer.from_pretrained(args.model, padding_side="left")
-        model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.float16, attn_implementation="sdpa")
-        model = model.cuda().eval()
+        if args.load_8bit:  # 8B fp16 ≈ 16 GB không vừa thẻ 16 GB → trọng số 8-bit (bitsandbytes), lm_head giữ fp16
+            from transformers import BitsAndBytesConfig
+            model = AutoModelForCausalLM.from_pretrained(
+                args.model, dtype=torch.float16, attn_implementation="sdpa", device_map="cuda",
+                quantization_config=BitsAndBytesConfig(load_in_8bit=True)).eval()
+        else:
+            model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.float16, attn_implementation="sdpa")
+            model = model.cuda().eval()
         yes, no = tok.convert_tokens_to_ids("yes"), tok.convert_tokens_to_ids("no")
         # chỉ 2 hàng của lm_head ở token cuối — logits đủ từ vựng ở mọi vị trí tốn ~7 GB mỗi lô
         head_w = model.get_output_embeddings().weight[[no, yes]]
