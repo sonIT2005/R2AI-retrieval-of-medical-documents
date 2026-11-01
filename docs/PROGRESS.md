@@ -17,10 +17,11 @@
 | — | 0,3365 | id 7238 | exp-041 | k=60, vi-share 0,7 (`results/D_wide_son.jsonl`) |
 | — | 0,3193 | id 7095 | exp-040 | D_wide trên máy Nguyen — kém D_wide_son cùng pipeline, chưa rõ vì sao (xem Vướng mắc) |
 
-## Đang làm (31/10 tối — đã hết lượt public)
-- BEST public 0,3606 = Qwen3-Reranker-4B (prr) + dyn_cut TB 140, vi-share 0,75. Chưa ghi: điểm prr_m160vs70 (exp-075).
-- Private 01–04/11: 5 lượt TỔNG — cần xác nhận đề (cùng 1.200 câu hay câu mới) trước khi nộp.
-- Tiếp: working-notes paper; dọn thư mục (đề xuất trước, người dùng duyệt).
+## Đang làm (02/11 — vòng private, hạn 04/11 23:59, 5 lượt TỔNG)
+- BTC: câu private nằm trong 1.200 câu → submissions/sub_prr_m140.zip (0,3606 public) nộp lại được ngay = lượt private 1.
+- Bộ dò (llm_judge.py) đạt chuẩn: Qwen3-14B và Gemma 3 12B, 300 câu, cặp chênh ≥0,005 xếp đúng 99%, Pearson ≈ 0,94.
+- exp-077: Qwen3-Reranker-8B (8-bit) trên 300 câu bộ dò; mốc 4B F2 giả 0,6288 (Qwen) / 0,6426 (Gemma) / 0,6417 (kết hợp).
+  Nếu 8B > 4B vượt nhiễu ở cả hai giám khảo → chạy 8B đủ 1.200 câu (~12–15 giờ) → lượt private 2.
 
 ## Đã xong (mới nhất ở trên, tối đa 10 dòng)
 - 31/10 — dọn repo lần 2: xoá rerank.py (gộp interleave vào qwen_rerank), decompose_queries.py, lượt dsub/bm25bi_zh, ~2,4 GB;
