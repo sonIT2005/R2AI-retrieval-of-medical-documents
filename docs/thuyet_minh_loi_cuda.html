@@ -1,0 +1,115 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Thuyết minh — loi_cuda</title><style>
+@page { size: A4; margin: 18mm 17mm 18mm 17mm; }
+body { font-family: "Liberation Serif", "DejaVu Serif", serif; font-size: 11pt; line-height: 1.38; color: #111; }
+h1 { font-size: 18pt; text-align: center; margin: 0 0 4pt; } h1 .sub { font-size: 12pt; font-weight: normal; }
+.meta { text-align: center; font-size: 9.5pt; color: #333; margin-bottom: 10pt; }
+h2 { font-size: 13.5pt; border-bottom: 1px solid #999; padding-bottom: 2pt; margin: 16pt 0 6pt; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 10pt 0 4pt; page-break-after: avoid; }
+p, li { text-align: justify; } ol, ul { padding-left: 18pt; margin: 4pt 0; } li { margin-bottom: 2pt; }
+table { width: 100%; border-collapse: collapse; font-size: 9.3pt; margin: 4pt 0 8pt; page-break-inside: avoid; }
+th, td { border: 1px solid #888; padding: 3pt 5pt; vertical-align: top; text-align: left; }
+th { background: #dde6f3; }
+code { font-family: "Liberation Mono", monospace; font-size: 8.8pt; background: #f2f2f2; padding: 0 2px; }
+pre { font-family: "Liberation Mono", monospace; font-size: 8.2pt; background: #f5f5f5; border: 1px solid #ddd;
+      padding: 5pt 7pt; white-space: pre-wrap; page-break-inside: avoid; }
+a { color: #1a4a8c; text-decoration: none; }
+.fig { margin: 8pt 0; page-break-inside: avoid; } .cap { text-align: center; font-size: 9.5pt; font-style: italic; }
+</style></head><body>
+<h1>Tài liệu thuyết minh sản phẩm<br><span class="sub">R2AI 2026 · Stage 3 · ViBioMIR — đội loi_cuda</span></h1>
+<p class="meta">Mã nguồn: <a href="https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents">https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents</a> · Dữ liệu: &lt;LINK_GOOGLE_DRIVE&gt;</p>
+
+<h2>1.1. Tổng quan hệ thống</h2>
+<p><b>Bài toán.</b> Với mỗi câu hỏi y khoa tiếng Việt, trả về danh sách tài liệu liên quan (doc_id trong danh sách
+1.220.598 URL của BTC: Việt, Trung, PubMed tiếng Anh) và một đoạn nội dung trích nguyên văn cho mỗi tài liệu. Đánh giá
+bằng F2 cấp tài liệu và F2 cấp đoạn.</p>
+<p><b>Phương pháp.</b> Hệ thống truy hồi lai hai tầng, chạy hoàn toàn trên một máy (GPU 16 GB):</p>
+<ol>
+<li><b>Truy hồi tầng một</b> — chín lượt tìm riêng theo từng nhóm ngôn ngữ (xác định theo website): BM25 theo âm tiết
+và theo cặp âm tiết liền nhau cho tiếng Việt, BM25 tách từ jieba cho tiếng Trung, BM25 cho tiếng Anh, và năm lượt dense
+BGE-M3 (câu Việt → tài liệu Việt / Trung / Anh; câu dịch Trung → tài liệu Trung; câu dịch Anh → tài liệu Anh).</li>
+<li><b>Gộp thứ hạng</b> — Reciprocal Rank Fusion có trọng số trong từng nhóm, k = 150; giữ 300 ứng viên Việt và 130
+ứng viên Trung mỗi câu (nhóm Anh có hạn mức 0: bài nộp thử chỉ gồm tài liệu PubMed đạt 0 điểm).</li>
+<li><b>Xếp hạng lại</b> — Qwen3-Reranker chấm 150 ứng viên Việt và 50 ứng viên Trung đầu tiên; đầu vào là câu hỏi đầy
+đủ cùng tiêu đề và đoạn khớp nhất của tài liệu; điểm là xác suất token “yes”. Bài nộp cuối dùng trung bình điểm của
+bản 4B và 8B.</li>
+<li><b>Chọn kết quả đầu ra</b> — số tài liệu thay đổi theo từng câu: giữ tài liệu có điểm ≥ τ·(điểm cao nhất của câu
+đó), τ được dò để trung bình 140 tài liệu/câu (75% Việt); mỗi tài liệu kèm một đoạn 4.000 ký tự (Trung: 2.000) quanh
+vị trí khớp nhất.</li>
+</ol>
+<div class="fig"><svg viewBox="0 0 760 360" width="100%" xmlns="http://www.w3.org/2000/svg"><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#444"/></marker></defs><style>.t{font:bold 11.5px "Liberation Sans",sans-serif;text-anchor:middle;fill:#111}.s{font:10px "Liberation Sans",sans-serif;text-anchor:middle;fill:#333}.g{font:italic 11px "Liberation Sans",sans-serif;fill:#555}</style><text x="10" y="14" class="g">Chuẩn bị (chạy một lần)</text><rect x="10" y="26" width="150" height="54" rx="6" fill="#f4f4f4" stroke="#777" stroke-width="1.2"/><text x="85.0" y="44.0" class="t">HTML/XML đã crawl</text><text x="85.0" y="58.0" class="s">SQLite: snute/ai_guru-S3</text><text x="85.0" y="70.0" class="s">+ crawl bổ sung db_extra</text><rect x="195" y="26" width="150" height="54" rx="6" fill="#f4f4f4" stroke="#777" stroke-width="1.2"/><text x="270.0" y="44.0" class="t">Làm sạch</text><text x="270.0" y="58.0" class="s">trafilatura, lọc dòng rác</text><text x="270.0" y="70.0" class="s">theo website, XML PubMed</text><rect x="380" y="26" width="170" height="54" rx="6" fill="#f4f4f4" stroke="#777" stroke-width="1.2"/><text x="465.0" y="44.0" class="t">Chỉ mục BM25</text><text x="465.0" y="58.0" class="s">âm tiết · cặp âm tiết (Việt)</text><text x="465.0" y="70.0" class="s">jieba (Trung) · từ (Anh)</text><rect x="585" y="26" width="165" height="54" rx="6" fill="#f4f4f4" stroke="#777" stroke-width="1.2"/><text x="667.5" y="44.0" class="t">Vector BGE-M3</text><text x="667.5" y="58.0" class="s">1 vector/tài liệu</text><text x="667.5" y="70.0" class="s">(512 token đầu)</text><line x1="160" y1="53" x2="195" y2="53" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><line x1="345" y1="53" x2="380" y2="53" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><path d="M270,26 L270,19 L667,19 L667,26" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><text x="10" y="112" class="g">Với mỗi câu hỏi</text><rect x="10" y="120" width="150" height="56" rx="6" fill="#fff6e5" stroke="#b07d1a" stroke-width="1.2"/><text x="85.0" y="151.0" class="t">Câu hỏi tiếng Việt</text><rect x="195" y="120" width="150" height="56" rx="6" fill="#eef3fb" stroke="#3a5a8c" stroke-width="1.2"/><text x="270.0" y="139.0" class="t">Dịch câu hỏi</text><text x="270.0" y="153.0" class="s">Qwen3-8B (Ollama)</text><text x="270.0" y="165.0" class="s">→ Trung, Anh</text><rect x="380" y="120" width="170" height="56" rx="6" fill="#eef3fb" stroke="#3a5a8c" stroke-width="1.2"/><text x="465.0" y="139.0" class="t">9 lượt tìm theo nhóm</text><text x="465.0" y="153.0" class="s">BM25 ×4 · dense BGE-M3 ×5</text><text x="465.0" y="165.0" class="s">cùng & xuyên ngôn ngữ, 300/lượt</text><rect x="585" y="120" width="165" height="56" rx="6" fill="#eef3fb" stroke="#3a5a8c" stroke-width="1.2"/><text x="667.5" y="139.0" class="t">Gộp RRF (k = 150)</text><text x="667.5" y="153.0" class="s">có trọng số trong từng nhóm</text><text x="667.5" y="165.0" class="s">→ 300 Việt + 130 Trung</text><line x1="160" y1="148" x2="195" y2="148" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><line x1="345" y1="148" x2="380" y2="148" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><line x1="550" y1="148" x2="585" y2="148" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><line x1="440" y1="80" x2="440" y2="120" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><path d="M667,80 L667,100 L520,100 L520,120" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><rect x="585" y="214" width="165" height="74" rx="6" fill="#eef3fb" stroke="#3a5a8c" stroke-width="1.2"/><text x="667.5" y="236.0" class="t">Xếp hạng lại</text><text x="667.5" y="250.0" class="s">Qwen3-Reranker-4B (+ 8B)</text><text x="667.5" y="262.0" class="s">top 150 Việt + 50 Trung</text><text x="667.5" y="274.0" class="s">câu hỏi + đoạn khớp nhất</text><rect x="380" y="214" width="170" height="74" rx="6" fill="#eef3fb" stroke="#3a5a8c" stroke-width="1.2"/><text x="465.0" y="242.0" class="t">Cắt theo từng câu</text><text x="465.0" y="256.0" class="s">giữ điểm ≥ τ·điểm cao nhất</text><text x="465.0" y="268.0" class="s">TB 140 tài liệu/câu, 75% Việt</text><rect x="195" y="214" width="150" height="74" rx="6" fill="#eef3fb" stroke="#3a5a8c" stroke-width="1.2"/><text x="270.0" y="236.0" class="t">Trích đoạn</text><text x="270.0" y="250.0" class="s">đoạn khớp nhất (BGE-M3)</text><text x="270.0" y="262.0" class="s">mở rộng 4.000 ký tự</text><text x="270.0" y="274.0" class="s">nguyên văn</text><rect x="10" y="214" width="150" height="74" rx="6" fill="#fff6e5" stroke="#b07d1a" stroke-width="1.2"/><text x="85.0" y="242.0" class="t">File nộp</text><text x="85.0" y="256.0" class="s">JSON 1.200 câu</text><text x="85.0" y="268.0" class="s">nén LZMA (< 100 MB)</text><line x1="667" y1="176" x2="667" y2="214" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><line x1="585" y1="251" x2="550" y2="251" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><line x1="380" y1="251" x2="345" y2="251" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><line x1="195" y1="251" x2="160" y2="251" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/><text x="10" y="314" class="g">Kết quả mỗi câu: relevant_docs (TB 140 doc_id) + relevant_chunks (1 đoạn/tài liệu)</text><text x="10" y="334" class="g">Điểm public tốt nhất: 0,3606 (F2 tài liệu 0,3938 · F2 đoạn 0,3274)</text></svg><p class="cap">Hình 1. Luồng xử lý từ câu hỏi đầu vào đến danh sách tài liệu và đoạn nội dung.</p></div>
+
+<h3>Chi tiết từng thành phần</h3>
+<table><colgroup><col style="width:17%"><col style="width:61%"><col style="width:22%"></colgroup><thead><tr><th>Thành phần</th><th>Cách làm</th><th>Mã nguồn</th></tr></thead><tbody><tr><td>Chỉ mục BM25</td><td>Vector hoá bằng hashing (2<sup>23</sup> chiều; cặp âm tiết 2<sup>24</sup>), k1 = 1,2, b = 0,75, 10.000 ký tự đầu của tiêu đề + nội dung; ma trận trọng số BM25 lưu sẵn ở <code>index/bm25/</code></td><td>search_docs.py</td></tr><tr><td>Chỉ mục dense</td><td>BGE-M3 fp16, 512 token đầu tài liệu, chuẩn hoá L2; tìm bằng tích vô hướng trên GPU</td><td>embed_corpus.py, search_docs.py</td></tr><tr><td>Gộp RRF</td><td>s(d) = Σ w<sub>lượt</sub> / (150 + hạng); trọng số: BM25 Việt 0,33 · cặp âm tiết 0,2 · BM25 Trung 0,3 · dense 1</td><td>search_docs.py</td></tr><tr><td>Đoạn khớp nhất</td><td>Chia tài liệu thành đoạn ~1.000 ký tự (Trung ~500), giữ tiêu đề mục với đoạn sau; chọn đoạn có max(cos với câu Việt, cos với bản dịch cùng ngôn ngữ) theo BGE-M3</td><td>make_submission.py</td></tr><tr><td>Xếp hạng lại</td><td>Qwen3-Reranker-4B fp16 (8B nạp 8-bit), lô 12.000 token; điểm lưu đệm theo (câu, tài liệu)</td><td>qwen_rerank.py, ensemble_rerank.py</td></tr><tr><td>Cắt theo câu</td><td>τ riêng cho Việt và Trung, dò nhị phân; mỗi câu kẹp trong [80, 400] tài liệu</td><td>dyn_cut.py</td></tr><tr><td>File nộp</td><td>JSON 1.200 câu, tự kiểm tra định dạng và tính nguyên văn của đoạn, nén LZMA (từ điển = cỡ file)</td><td>make_submission.py</td></tr></tbody></table>
+
+<h3>Kết quả trên bảng xếp hạng public (600 câu)</h3>
+<table><colgroup><col style="width:58%"><col style="width:14%"><col style="width:14%"><col style="width:14%"></colgroup><thead><tr><th>Cấu hình</th><th>F2 tài liệu</th><th>F2 đoạn</th><th>Điểm</th></tr></thead><tbody><tr><td>RRF 8 lượt, 100 tài liệu/câu, đoạn ~1.000 ký tự (bản đầu)</td><td>0,2375</td><td>0,0837</td><td>0,1606</td></tr><tr><td>+ đoạn 4.000 ký tự, bỏ nhóm Anh, giảm trọng số BM25 Việt</td><td>0,3038</td><td>0,2434</td><td>0,2736</td></tr><tr><td>+ cắt số tài liệu theo từng câu, đoạn cho mọi tài liệu</td><td>0,3467</td><td>0,2919</td><td>0,3193</td></tr><tr><td>+ RRF k = 150, 75% Việt, BM25 cặp âm tiết</td><td>0,3748</td><td>0,3135</td><td>0,3442</td></tr><tr><td>+ Qwen3-Reranker-4B, cắt theo điểm reranker, TB 140 tài liệu/câu</td><td>0,3938</td><td>0,3274</td><td><b>0,3606</b></td></tr></tbody></table>
+
+<h2>1.2. Dữ liệu</h2>
+<h3>Nguồn và thu thập</h3>
+<table><colgroup><col style="width:22%"><col style="width:58%"><col style="width:20%"></colgroup><thead><tr><th>Dữ liệu</th><th>Nguồn</th><th>Quy mô</th></tr></thead><tbody><tr><td>Danh sách kho + câu hỏi</td><td>BTC: Hugging Face <code>AIGuruTinix/ViBioMIR</code> (links_corpus_vi_en_zh.parquet, query.parquet)</td><td>1.220.598 URL; 1.200 câu</td></tr><tr><td>Nội dung đã crawl (dùng chung)</td><td>Hugging Face <code>snute/ai_guru-S3</code>: db/ (97 website), db_cc/ (Common Crawl), db_wayback/ (Wayback Machine), db_alt/ — SQLite, HTML nén zstd</td><td>~58 GB</td></tr><tr><td>Crawl bổ sung của đội</td><td><code>vibiomir_s3/db_extra/</code>: các URL còn thiếu, tải bằng curl_cffi, kiểm tra nội dung (loại trang CAPTCHA trả mã 200) — scripts/crawl/</td><td>38 file SQLite, 6,1 GB</td></tr><tr><td>Bản dịch câu hỏi</td><td>Qwen3-8B, có trong repo: results/queries_translated.jsonl</td><td>1.200 câu</td></tr></tbody></table>
+<h3>Làm sạch và phân đoạn</h3>
+<ul>
+<li>Giải mã theo bảng mã khai báo (GBK/GB2312 → gb18030); trích nội dung chính bằng trafilatura (favor_recall, giữ bảng).</li>
+<li>Lấy mẫu 1.500 trang mỗi website, coi dòng xuất hiện ở ≥ 3% số trang là rác giao diện và loại bỏ; trang quá ngắn sau
+trích xuất dùng toàn bộ chữ trong thân trang (bỏ script, nav, header, footer).</li>
+<li>PubMed (XML efetch): tiêu đề, tóm tắt theo mục, từ khoá, MeSH. Chỉ giữ id thuộc danh sách BTC.</li>
+<li>Kết quả: 1.205.706 tài liệu (98,8% danh sách): 729.490 Việt, 236.518 Trung, 239.698 PubMed → <code>clean/corpus/*.parquet</code>
+(doc_id, url, host, title, text, lang).</li>
+<li>Phân đoạn khi tạo file nộp: gom dòng tới ~1.000 ký tự (Trung ~500), mỗi đoạn là lát cắt nguyên văn của văn bản.</li>
+</ul>
+<h3>Hướng dẫn truy cập</h3>
+<p>Google Drive: &lt;LINK_GOOGLE_DRIVE&gt; — giải nén từ thư mục gốc repo bằng <code>tar -xf &lt;file&gt;.tar</code>, kiểm tra bằng
+<code>sha256sum -c SHA256SUMS</code>.</p>
+<table><colgroup><col style="width:26%"><col style="width:52%"><col style="width:22%"></colgroup><thead><tr><th>File</th><th>Nội dung</th><th>Bắt buộc?</th></tr></thead><tbody><tr><td>vibiomir_db_extra.tar</td><td>vibiomir_s3/db_extra/ — crawl bổ sung của đội (6,1 GB)</td><td>Có</td></tr><tr><td>vibiomir_clean_corpus.tar</td><td>clean/corpus/ — văn bản đã làm sạch (1,5 GB)</td><td>Không (thay bước làm sạch)</td></tr><tr><td>vibiomir_emb.tar</td><td>emb/ — vector BGE-M3 (2,4 GB)</td><td>Không (thay bước tạo vector)</td></tr><tr><td>vibiomir_results.tar</td><td>results/: 9 lượt tìm, vector đoạn, điểm Qwen3-Reranker-8B (~3,6 GB)</td><td>Không (thay ~8 giờ GPU)</td></tr></tbody></table>
+<p>Dữ liệu dùng chung tải bằng: <code>hf download snute/ai_guru-S3 --repo-type dataset --local-dir vibiomir_s3</code> và
+<code>hf download AIGuruTinix/ViBioMIR links_corpus_vi_en_zh.parquet query.parquet --repo-type dataset --local-dir btc_data_v2</code>.</p>
+
+<h2>1.3. Mô hình sử dụng</h2>
+<p>Tất cả là mô hình mã nguồn mở ≤ 15 tỷ tham số, phát hành trước 01/08/2026; không dùng API thương mại. Mô hình
+Hugging Face tự tải khi chạy lần đầu (thư mục mặc định <code>~/.cache/huggingface/hub</code>).</p>
+<table><colgroup><col style="width:25%"><col style="width:30%"><col style="width:17%"><col style="width:28%"></colgroup><thead><tr><th>Mô hình</th><th>Vai trò</th><th>Phiên bản</th><th>Đường dẫn tải chính thức</th></tr></thead><tbody><tr><td>BAAI/bge-m3 (568M)</td><td>Vector tài liệu, câu hỏi; chọn đoạn khớp nhất</td><td>commit 5617a9f</td><td>huggingface.co/BAAI/bge-m3</td></tr><tr><td>Qwen/Qwen3-Reranker-4B</td><td>Xếp hạng lại (fp16)</td><td>commit 22e6836</td><td>huggingface.co/Qwen/Qwen3-Reranker-4B</td></tr><tr><td>Qwen/Qwen3-Reranker-8B</td><td>Xếp hạng lại, gộp với 4B (8-bit, bitsandbytes)</td><td>commit 77d193c</td><td>huggingface.co/Qwen/Qwen3-Reranker-8B</td></tr><tr><td>Qwen3-8B (Ollama qwen3:8b, Q4_K_M)</td><td>Dịch câu hỏi sang Trung, Anh</td><td>digest 500a1f067a9f</td><td><code>ollama pull qwen3:8b</code></td></tr></tbody></table>
+<p><b>Cấu hình và prompt.</b> Dịch câu hỏi: nhiệt độ 0, tắt chế độ suy nghĩ, đầu ra ràng buộc JSON schema
+{"zh", "en"}; system prompt:</p>
+<pre>You are a professional medical translator. Translate the Vietnamese medical question into: 1. zh: Simplified Chinese, phrased naturally like a patient asking on a Chinese medical Q&amp;A website, using standard Chinese medical terms. 2. en: English, using standard medical terminology as used in PubMed articles. Keep every number, unit, lab value, drug name and abbreviation exactly as written. Translate faithfully: keep all details, add nothing, and do not answer the question.</pre>
+<p>Xếp hạng lại (định dạng chuẩn của Qwen3-Reranker; điểm = P(“yes”) / (P(“yes”) + P(“no”)) ở token cuối):</p>
+<pre>&lt;|im_start|&gt;system
+Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be &quot;yes&quot; or &quot;no&quot;.&lt;|im_end|&gt;
+&lt;|im_start|&gt;user
+&lt;Instruct&gt;: Given a Vietnamese patient&#x27;s medical question, judge whether the document is relevant to it
+&lt;Query&gt;: {câu hỏi}
+&lt;Document&gt;: {tiêu đề}
+{đoạn khớp nhất ≤ 1.200 ký tự}&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant
+&lt;think&gt;
+
+&lt;/think&gt;
+
+</pre>
+<p><b>Chỉ dùng khi phát triển</b> (không nằm trong quy trình tạo bài nộp): Qwen3-14B và Gemma 3 12B (Ollama) làm giám khảo
+cho một tập phát triển tự gán nhãn trên 300 câu (<code>llm_judge.py</code>), dùng để so sánh các phương án xếp hạng lại.</p>
+
+<h2>1.4. Mã nguồn</h2>
+<p>Toàn bộ mã nguồn: <a href="https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents">https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents</a>.</p>
+<table><colgroup><col style="width:32%"><col style="width:68%"></colgroup><thead><tr><th>File</th><th>Chức năng</th></tr></thead><tbody><tr><td>clean_corpus.py</td><td>Làm sạch HTML/XML → clean/corpus</td></tr><tr><td>embed_corpus.py</td><td>Vector BGE-M3 → emb/</td></tr><tr><td>translate_queries.py</td><td>Dịch câu hỏi (Qwen3-8B qua Ollama)</td></tr><tr><td>search_docs.py</td><td>Chỉ mục BM25, 9 lượt tìm, gộp RRF</td></tr><tr><td>qwen_rerank.py · ensemble_rerank.py</td><td>Xếp hạng lại bằng Qwen3-Reranker; gộp điểm 4B + 8B</td></tr><tr><td>dyn_cut.py</td><td>Cắt số tài liệu theo từng câu</td></tr><tr><td>make_submission.py</td><td>Phân đoạn, chọn đoạn, kiểm tra định dạng, nén</td></tr><tr><td>build_submission.sh</td><td>Bước gộp → xếp hạng lại → cắt → tạo file nộp trong một lệnh (tham số = cấu hình bài nộp)</td></tr><tr><td>scripts/crawl/</td><td>Crawl bổ sung (find_missing.py, crawl_missing2.py, …)</td></tr><tr><td>tools/pack_data.sh</td><td>Đóng gói dữ liệu chia sẻ</td></tr></tbody></table>
+<table><colgroup><col style="width:30%"><col style="width:70%"></colgroup><thead><tr><th>Môi trường</th><th>Thư viện chính (phiên bản)</th></tr></thead><tbody><tr><td>conda base, Python 3.14 — làm sạch</td><td>trafilatura 2.3.1 · zstandard 0.25.0 · lxml 6.1.3 · curl_cffi 0.16.3 · pyarrow 25.0.1 · pandas 3.0.6 (requirements-clean.txt)</td></tr><tr><td>conda vibiomir, Python 3.11 — GPU</td><td>torch 2.11.0+cu128 · sentence-transformers 6.1.0 · transformers 5.19.0 · bitsandbytes 0.50.2 · accelerate 1.15.0 · scikit-learn 1.9.1 · jieba 0.42.1 · pyarrow 26.0.0 (requirements-search.txt)</td></tr><tr><td>Dịch vụ</td><td>Ollama 0.31.1 · NVIDIA driver 595.91, CUDA 12.8</td></tr></tbody></table>
+<p><b>Cấu hình tái hiện bài nộp</b> (tham số mặc định trong build_submission.sh): RRF k = 150; hạn mức 300 Việt / 130
+Trung / 0 Anh; reranker chấm 150 Việt + 50 Trung, đoạn ≤ 1.200 ký tự; cắt trung bình 140 tài liệu/câu, 75% Việt, kẹp
+[80, 400]; đoạn nộp 4.000 ký tự, nén LZMA-XL.</p>
+
+<h2>1.5. Hướng dẫn cài đặt và chạy lại</h2>
+<p>Chi tiết đầy đủ trong <code>README.md</code> của repo. Tóm tắt:</p>
+<pre>git clone https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents.git vibiomir &amp;&amp; cd vibiomir
+pip install -r requirements-clean.txt                          # conda base, Python 3.14
+conda create -n vibiomir python=3.11 -y &amp;&amp; conda activate vibiomir
+pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+pip install -r requirements-search.txt &amp;&amp; ollama pull qwen3:8b
+# dữ liệu: hf download (mục 1.2) + tar -xf vibiomir_db_extra.tar
+python clean_corpus.py                                         # ~1 giờ 20 (conda base)
+python embed_corpus.py                                         # ~3 giờ GPU
+python search_docs.py --quota 300,130,0 --rrf-k 150 --out D_bi02   # ~20 phút
+./build_submission.sh prr_m140                                 # Qwen3-Reranker-4B → bài 0,3606
+RERANK=ens ./build_submission.sh ens_m140                      # gộp 4B + 8B → bài vòng private</pre>
+<p>Tái tạo nhanh từ dữ liệu tăng tốc (không cần làm sạch, tạo vector, chạy reranker):</p>
+<pre>CAND=results/D_bi02.jsonl ./build_submission.sh prr_m140
+CAND=results/D_bi02.jsonl RERANK=ens ./build_submission.sh ens_m140</pre>
+</body></html>
