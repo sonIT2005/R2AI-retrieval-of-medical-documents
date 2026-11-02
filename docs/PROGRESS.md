@@ -17,11 +17,12 @@
 | — | 0,3365 | id 7238 | exp-041 | k=60, vi-share 0,7 (`results/D_wide_son.jsonl`) |
 | — | 0,3193 | id 7095 | exp-040 | D_wide trên máy Nguyen — kém D_wide_son cùng pipeline, chưa rõ vì sao (xem Vướng mắc) |
 
-## Đang làm (02/11 — vòng private, hạn 04/11 23:59, 5 lượt TỔNG)
-- BTC: câu private nằm trong 1.200 câu → submissions/sub_prr_m140.zip (0,3606 public) nộp lại được ngay = lượt private 1.
-- Bộ dò (llm_judge.py) đạt chuẩn: Qwen3-14B và Gemma 3 12B, 300 câu, cặp chênh ≥0,005 xếp đúng 99%, Pearson ≈ 0,94.
-- exp-077: Qwen3-Reranker-8B (8-bit) trên 300 câu bộ dò; mốc 4B F2 giả 0,6288 (Qwen) / 0,6426 (Gemma) / 0,6417 (kết hợp).
-  Nếu 8B > 4B vượt nhiễu ở cả hai giám khảo → chạy 8B đủ 1.200 câu (~12–15 giờ) → lượt private 2.
+## Đang làm (03/11 — vòng private, hạn 04/11 23:59)
+- Lượt private 1: sub_prr_m140 (0,3606 public). Lượt 2: **sub_ens_m140** (gộp Qwen3-Reranker-4B + 8B; bộ dò +0,0051 ≈ +0,0015 LB).
+  Tái tạo: `CAND=results/D_bi02.jsonl RERANK=ens ./build_submission.sh ens_m140` (khớp từng byte).
+- Tài liệu thuyết minh BTC (hạn 04/11 23:59): README.md + docs/thuyet_minh_loi_cuda.pdf xong; còn: chạy tools/pack_data.sh,
+  tải ~/R2AI/drive_upload lên Google Drive, điền link (`python tools/make_thuyet_minh.py --drive <link>` + README),
+  gộp nhánh son → main, mở quyền repo cho BTC.
 
 ## Đã xong (mới nhất ở trên, tối đa 10 dòng)
 - 31/10 — dọn repo lần 2: xoá rerank.py (gộp interleave vào qwen_rerank), decompose_queries.py, lượt dsub/bm25bi_zh, ~2,4 GB;
