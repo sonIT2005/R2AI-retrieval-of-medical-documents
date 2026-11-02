@@ -1,100 +1,139 @@
 # R2AI 2026 · ViBioMIR — đội loi_cuda
 
-Truy hồi thông tin y sinh **xuyên ngôn ngữ**: câu hỏi tiếng Việt → tìm **tài liệu** (`doc_id`) và **đoạn nội dung** (chunk) liên quan trong corpus Việt – Trung – Anh.
-Chấm điểm: F2 (coi trọng Recall) ở cấp tài liệu và cấp chunk, trung bình theo câu hỏi; điểm cuối = trung bình hai F2.
+Truy hồi thông tin y khoa **xuyên ngôn ngữ**: câu hỏi tiếng Việt → danh sách **tài liệu** (`doc_id`) và **đoạn nội dung**
+(trích nguyên văn) liên quan trong kho khoảng 1,2 triệu tài liệu Việt – Trung – Anh (PubMed).
+Điểm = trung bình F2 cấp tài liệu và F2 cấp đoạn (tính theo từng câu rồi lấy trung bình).
 
-## Dữ liệu (không có trong repo)
+Tài liệu thuyết minh đầy đủ (phương pháp, sơ đồ, dữ liệu, mô hình): `docs/thuyet_minh_loi_cuda.pdf`.
+Nhật ký toàn bộ thí nghiệm: `docs/EXPERIMENTS.md`.
 
-Mọi script chạy từ thư mục gốc của repo và cần các thư mục sau:
-
-| Thư mục | Nội dung | Cách lấy |
+| Bài nộp | Cấu hình | Điểm public (600 câu) |
 |---|---|---|
-| `btc_data_v2/` | Danh sách corpus chính thức 1.220.598 URL + 1.200 câu hỏi | `hf download AIGuruTinix/ViBioMIR links_corpus_vi_en_zh.parquet query.parquet --repo-type dataset --local-dir btc_data_v2` |
-| `vibiomir_s3/` | HTML/XML đã crawl (SQLite nén zstd, ~64GB) | `hf download snute/ai_guru-S3 --repo-type dataset --local-dir vibiomir_s3` |
-| `clean/`, `emb/`, `index/`, `results/`, `submissions/` | Sinh ra bởi các bước bên dưới | — |
+| `sub_prr_m140` | 9 lượt tìm + RRF k=150 → Qwen3-Reranker-4B → cắt TB 140 tài liệu/câu | **0,3606** (F2 tài liệu 0,3938 · F2 đoạn 0,3274) |
+| `sub_ens_m140` | như trên, điểm reranker = trung bình Qwen3-Reranker-4B và 8B | bài nộp vòng private |
 
-## Môi trường
+---
+
+## 1. Yêu cầu hệ thống
+
+| Thành phần | Phiên bản đã dùng | Ghi chú |
+|---|---|---|
+| Hệ điều hành | Ubuntu 26.04 LTS | Linux bất kỳ có CUDA đều chạy được |
+| GPU | NVIDIA RTX 5060 Ti 16 GB, driver 595.91 | ≥ 16 GB VRAM cho Qwen3-Reranker-4B fp16 / 8B 8-bit |
+| CPU / RAM | 32 luồng / 29 GB | Tắt ứng dụng nặng khi chạy reranker (cần ~16 GB RAM) |
+| Ổ đĩa | ~120 GB (chạy từ đầu) · ~50 GB (dùng dữ liệu tăng tốc, không cần `vibiomir_s3/`) | gồm ~34 GB mô hình |
+| Conda | Miniconda | 2 môi trường: `base` (Python 3.14) và `vibiomir` (Python 3.11) |
+| CUDA (PyTorch) | 12.8 | `torch==2.11.0+cu128` |
+| Ollama | 0.31.1 | Chạy Qwen3-8B để dịch câu hỏi |
+
+## 2. Cài đặt môi trường
 
 ```bash
-# Làm sạch (conda base, Python 3.14)
+git clone https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents.git vibiomir && cd vibiomir
+
+# (a) Làm sạch HTML — conda base, Python 3.14
 pip install -r requirements-clean.txt
 
-# Embedding / tìm kiếm / nộp bài (GPU)
+# (b) Vector, tìm kiếm, reranker, tạo file nộp — Python 3.11, GPU
 conda create -n vibiomir python=3.11 -y && conda activate vibiomir
 pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements-search.txt
 
-# LLM dịch câu hỏi
+# (c) Dịch câu hỏi — Ollama (https://ollama.com/download), bản 0.31.1
 ollama pull qwen3:8b
 ```
 
-## Quy trình
+Mọi lệnh bên dưới chạy **từ thư mục gốc repo**. Mọi bước dài đều dừng được bằng `Ctrl+C`; chạy lại sẽ tiếp tục từ chỗ dừng.
+
+## 3. Dữ liệu
+
+### 3.1. Bắt buộc
+
+| Thư mục | Nội dung | Cách lấy |
+|---|---|---|
+| `btc_data_v2/` | Danh sách kho chính thức (1.220.598 URL) + 1.200 câu hỏi | `hf download AIGuruTinix/ViBioMIR links_corpus_vi_en_zh.parquet query.parquet --repo-type dataset --local-dir btc_data_v2` |
+| `vibiomir_s3/` (`db/`, `db_cc/`, `db_wayback/`, `db_alt/`) | HTML/XML đã crawl (SQLite nén zstd, ~58 GB) | `hf download snute/ai_guru-S3 --repo-type dataset --local-dir vibiomir_s3` |
+| `vibiomir_s3/db_extra/` | Trang đội tự crawl bổ sung (38 file SQLite, 6,1 GB) | Google Drive: `vibiomir_db_extra.tar` → `tar -xf vibiomir_db_extra.tar` |
+
+### 3.2. Tăng tốc (không bắt buộc)
+
+Bỏ qua được các bước tốn thời gian nhất. Tải từ cùng thư mục Google Drive, giải nén ở thư mục gốc repo:
+
+| File | Bỏ qua bước | Dung lượng |
+|---|---|---|
+| `vibiomir_clean_corpus.tar` → `clean/corpus/` | Làm sạch (~1 giờ 20) | 1,5 GB |
+| `vibiomir_emb.tar` → `emb/` | Vector BGE-M3 (~3 giờ GPU) | 2,4 GB |
+| `vibiomir_results.tar` → `results/` | 9 lượt tìm, vector đoạn, điểm Qwen3-Reranker-8B (~8 giờ GPU) | ~3,6 GB |
+
+**Link Google Drive:** `<LINK_GOOGLE_DRIVE>` · Kiểm tra toàn vẹn: `sha256sum -c SHA256SUMS`.
+
+Đã có sẵn trong repo (không cần tải): `results/queries_translated.jsonl` (bản dịch câu hỏi),
+`results/D_bi02.jsonl` (danh sách ứng viên của bài nộp), `results/qwen_rerank_cache_q3r4B_passage.pkl` (điểm Qwen3-Reranker-4B).
+
+## 4. Mô hình
+
+Tất cả là mô hình mã nguồn mở ≤ 15 tỷ tham số, phát hành trước 01/08/2026; tải tự động khi chạy lần đầu.
+
+| Mô hình | Vai trò | Phiên bản (commit / digest) | Tải |
+|---|---|---|---|
+| BAAI/bge-m3 | Vector tài liệu và câu hỏi; chọn đoạn khớp nhất | `5617a9f` | https://huggingface.co/BAAI/bge-m3 |
+| Qwen/Qwen3-Reranker-4B | Xếp hạng lại 200 ứng viên/câu | `22e6836` | https://huggingface.co/Qwen/Qwen3-Reranker-4B |
+| Qwen/Qwen3-Reranker-8B | Xếp hạng lại (gộp với 4B), nạp 8-bit | `77d193c` | https://huggingface.co/Qwen/Qwen3-Reranker-8B |
+| qwen3:8b (Ollama, Q4_K_M) | Dịch câu hỏi sang Trung, Anh | `500a1f067a9f` | `ollama pull qwen3:8b` |
+
+Chỉ dùng khi phát triển (không nằm trong quy trình tạo bài nộp): `qwen3:14b` và `gemma3:12b` (Ollama) làm giám khảo cho
+tập phát triển tự gán nhãn (`llm_judge.py`).
+
+## 5. Chạy lại từ đầu
 
 | # | Lệnh | Việc | Thời gian* |
 |---|---|---|---|
-| 1 | `python clean_corpus.py` | HTML/XML → văn bản sạch, chỉ giữ id thuộc corpus BTC → `clean/corpus/` | ~1h20 lần đầu, chạy lại chỉ xử lý file SQLite mới |
-| 2 | `python embed_corpus.py` | BGE-M3, 1 vector/tài liệu → `emb/` | ~3h cho 1,2M tài liệu, chạy lại dùng lại vector cũ |
-| 3 | `python translate_queries.py` | Qwen3-8B dịch câu hỏi sang Trung + Anh → `results/queries_translated.jsonl` | ~1,5h |
-| 4 | `python search_docs.py --quota 300,130,0 --rrf-k 150` | 8 lượt tìm (BM25 + dense, theo từng ngôn ngữ) → `results/run_*.jsonl` → gộp RRF có trọng số trong từng ngôn ngữ, ghép theo hạn mức Việt,Trung,Anh | ~15 phút; `--only-fuse` chỉ vài giây |
-| 5 | `python qwen_rerank.py --docs … --pool 150,50 --quota 0,0 --model Qwen/Qwen3-Reranker-4B --text passage --passage-chars 1200` | Qwen3-Reranker-4B chấm (câu hỏi, tiêu đề + đoạn khớp nhất) cho top 150 Việt + 50 Trung → thứ tự theo P("yes") | ~6 giờ lần đầu; có cache → vài phút |
-| 6 | `python dyn_cut.py --docs … --mean 140 --vi-share 0.75` | Số tài liệu theo từng câu (giữ bài có điểm ≥ tau·top-1), TB 140, 75% Việt | vài giây |
-| 7 | `python make_submission.py --docs … --chunk-chars 4000:400 --compress lzma-xl` | Mỗi tài liệu 1 đoạn ~4.000 ký tự quanh chỗ khớp nhất → `submissions/*.zip` (< 100 MB) | ~15 phút (có bộ nhớ đệm) |
+| 1 | `conda activate base && python clean_corpus.py` | HTML/XML → văn bản sạch, chỉ giữ id thuộc kho BTC → `clean/corpus/` | ~1 giờ 20 |
+| 2 | `conda activate vibiomir && python embed_corpus.py` | BGE-M3, 1 vector/tài liệu → `emb/` | ~3 giờ |
+| 3 | `python translate_queries.py` | Qwen3-8B dịch câu hỏi → `results/queries_translated.jsonl` (đã có trong repo) | ~1,5 giờ |
+| 4 | `python search_docs.py --quota 300,130,0 --rrf-k 150 --out D_bi02` | Dựng chỉ mục BM25 + 9 lượt tìm → `results/run_*.jsonl`; gộp RRF → 300 ứng viên Việt + 130 Trung/câu | ~20 phút |
+| 5 | `./build_submission.sh prr_m140` | Qwen3-Reranker-4B → cắt TB 140 → `submissions/sub_prr_m140.zip` | ~6 giờ (có cache: ~20 phút) |
+| 5' | `RERANK=ens ./build_submission.sh ens_m140` | Thêm Qwen3-Reranker-8B, gộp điểm → `submissions/sub_ens_m140.zip` | ~14 giờ (có cache: ~20 phút) |
 
-**Bước 4–7 gộp trong một lệnh** (mặc định = bài tốt nhất 0,3606): `./build_submission.sh <tên>`.
-Tái tạo đúng bài 0,3606 trên máy khác, không cần GPU cho reranker: `CAND=results/D_bi02.jsonl ./build_submission.sh best`
-(danh sách ứng viên + điểm reranker đều có trong git).
+\* RTX 5060 Ti 16 GB, 32 luồng CPU.
 
-\* trên RTX 5060 Ti 16GB, 32 luồng CPU, 29GB RAM. Mọi bước dừng bằng `Ctrl+C` và chạy lại sẽ tiếp tục.
+`build_submission.sh` gồm: gộp RRF (`search_docs.py --only-fuse`) → reranker (`qwen_rerank.py`, `ensemble_rerank.py`)
+→ cắt số tài liệu theo từng câu (`dyn_cut.py`) → trích đoạn và nén (`make_submission.py`, tự kiểm tra định dạng).
 
-Phụ trợ trong `scripts/crawl/` (chạy từ gốc repo, vd `python scripts/crawl/find_missing.py`): `find_missing.py` (liệt kê URL chưa có nội dung), `crawl_missing2.py` (crawl bổ sung bằng curl_cffi, có phát hiện CAPTCHA).
+### Tái tạo đúng bài nộp mà không chạy lại tìm kiếm
 
-### Cấu trúc thư mục
+Dùng danh sách ứng viên và điểm reranker có trong repo / Google Drive:
 
+```bash
+conda activate vibiomir
+CAND=results/D_bi02.jsonl ./build_submission.sh prr_m140             # bài 0,3606 — chỉ cần clean/corpus + results/
+CAND=results/D_bi02.jsonl RERANK=ens ./build_submission.sh ens_m140  # cần thêm vibiomir_results.tar (điểm 8B)
 ```
-clean_corpus.py · embed_corpus.py · translate_queries.py     bước 1–3 (chạy một lần)
-search_docs.py · qwen_rerank.py · dyn_cut.py · make_submission.py   bước 4–7 (mỗi bài nộp)
-build_submission.sh                                           bước 4–7 trong một lệnh
-scripts/crawl/                                                crawl bổ sung (đã xong, giữ để tham khảo)
-docs/                                                         EXPERIMENTS (nhật ký), PROGRESS, PLAN, CODEMAP; archive/ = tài liệu cũ
-.claude/ · tools/ · AGENTS.md · CLAUDE.md · start.sh/.ps1     bộ công cụ agent
-results/                                                      queries_translated, D_bi02.jsonl (ứng viên), qwen_rerank_cache_q3r4B_passage.pkl
-```
-Code của các thí nghiệm đã bác bỏ (bge-reranker, HyDE, PRF, vector phần sau bài, Qwen3-Embedding, BM25 cặp chữ Hán, tách câu hỏi nhiều ý) đã xoá khỏi cây; xem lại bằng `git log -- <tên file>`.
 
-### Chi tiết các bước chính
+Nếu chưa có `results/chunk_cache.pkl` (trong `vibiomir_results.tar`), lần chạy đầu `make_submission.py` và `qwen_rerank.py`
+phải mã hoá đoạn văn bằng BGE-M3 (thêm ~1 giờ GPU).
 
-- **Làm sạch**: trafilatura + tự giải mã bảng mã (GBK → gb18030), học dòng rác giao diện theo từng site (dòng xuất hiện ở ≥3% trang), loại trang CAPTCHA, phương án dự phòng khi tách nội dung thất bại. PubMed lưu dạng XML của API efetch → bộ đọc riêng (tiêu đề + tóm tắt theo mục + Keywords + MeSH).
-- **Tìm kiếm**: nhóm ngôn ngữ theo website (PubMed = `en`). Lượt tìm: `bm25_vi`, `dense_vi_{vi,zh,en}`, `bm25_zh` (jieba), `dense_zh_zh`, `bm25_en`, `dense_en_en`. BM25 trên câu dịch có trọng số 0,3 vì lệch từ vựng với bài gốc.
-- **Chunk**: gom các dòng tới ~1.000 ký tự (Việt/Anh) / ~500 (Trung), tiêu đề mục đi cùng đoạn sau; mỗi chunk là lát cắt nguyên văn `text[a:b]`. Chọn đoạn theo max(cos với câu Việt, cos với bản dịch cùng ngôn ngữ).
+## 6. Định dạng file nộp
 
-## Nộp bài
-
-ZIP chứa **đúng 1 file** `.json` (không thư mục con) → leaderboard.aiguru.com.vn → *My Submissions*.
+ZIP chứa **đúng 1 file** `.json` (không thư mục con), đủ 1.200 câu:
 ```json
 [{"id": 1, "relevant_docs": [123, 456], "relevant_chunks": [{"doc_id": 123, "chunk_text": "trích nguyên văn…"}]}]
 ```
-Đủ 1.200 câu. Tối đa **10 lần/ngày**; vòng private chỉ **5 lần tổng cộng**. `make_submission.py` tự kiểm tra định dạng trước khi nén.
 
-## Kết quả leaderboard (public, 600 câu)
+## 7. Cấu trúc mã nguồn
 
-| Bản nộp | F2 tài liệu | F2 chunk | Điểm |
-|---|---|---|---|
-| 10 Việt + 5 Trung + 5 Anh (20 tài liệu) | 0,114 | 0,030 | 0,0724 |
-| 20 Trung | 0,061 | 0,046 | 0,0536 |
-| 20 Anh | 0 | 0 | 0 |
-| 40 Việt + 50 Trung + 10 Anh (100 tài liệu) | 0,238 | 0,084 | 0,1606 |
-| RRF k=150, TB 180 tài liệu/câu (75% Việt), chunk 4.000 ký tự cho mọi tài liệu (exp-049) | 0,373 | 0,313 | 0,3427 |
-| + BM25 cặp âm tiết Việt (trọng số 0,2) (exp-057) | 0,375 | 0,314 | 0,3442 |
-| + Qwen3-Reranker-4B, cắt theo điểm reranker TB 140 tài liệu/câu (exp-073) | 0,394 | 0,327 | **0,3606** |
-
-Toàn bộ 50+ thí nghiệm: `docs/EXPERIMENTS.md`.
-
-Nhận xét:
-- Đáp án rất lớn: trung vị **60 tài liệu/câu** (tối đa 190), ~1 chunk đáp án/tài liệu → cần nộp nhiều tài liệu.
-- Đáp án hiện **không có tài liệu tiếng Anh** (0/12.000) → hạn mức tiếng Anh = 0 cho tới khi BTC xác nhận.
-- Precision tài liệu: Việt ≈ 0,38 > Trung ≈ 0,16; nhưng Precision chunk: Trung > Việt (bài Việt dài, chọn sai đoạn).
-- `details.jsonl` chỉ dùng phân tích tổng quát, **không** ghi nhớ đáp án từng câu (dò đáp án → có thể bị loại).
-
-## Việc tiếp theo
-
-Xem `docs/PROGRESS.md` (bước tiếp theo) và `docs/PLAN.md` (backlog).
+| File | Việc |
+|---|---|
+| `clean_corpus.py` | Giải mã bảng mã, trafilatura, lọc dòng rác giao diện theo website, đọc XML PubMed |
+| `embed_corpus.py` | Vector BGE-M3 cho kho tài liệu |
+| `translate_queries.py` | Dịch câu hỏi bằng Qwen3-8B (Ollama, JSON schema) |
+| `search_docs.py` | BM25 (âm tiết, cặp âm tiết, jieba) + dense BGE-M3 theo từng nhóm ngôn ngữ; gộp RRF có trọng số |
+| `qwen_rerank.py` | Qwen3-Reranker chấm (câu hỏi, tiêu đề + đoạn khớp nhất), lưu đệm điểm |
+| `ensemble_rerank.py` | Trung bình điểm hai reranker |
+| `dyn_cut.py` | Số tài liệu theo từng câu: giữ tài liệu có điểm ≥ τ·điểm cao nhất, τ dò để đạt trung bình mong muốn |
+| `make_submission.py` | Chia đoạn, chọn đoạn khớp nhất, mở rộng cửa sổ 4.000 ký tự, nén LZMA, kiểm tra định dạng |
+| `build_submission.sh` | Bước 4–7 trong một lệnh |
+| `llm_judge.py` | Tập phát triển gán nhãn bằng LLM (chỉ dùng khi phát triển) |
+| `scripts/crawl/` | Crawl bổ sung các trang còn thiếu (đã chạy xong) |
+| `tools/pack_data.sh` | Đóng gói dữ liệu chia sẻ qua Google Drive |
+| `requirements-clean.txt`, `requirements-search.txt` | Phiên bản thư viện |
