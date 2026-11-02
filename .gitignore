@@ -13,6 +13,7 @@
 !dyn_cut.py
 !qwen_rerank.py
 !llm_judge.py
+!ensemble_rerank.py
 !scripts/
 !scripts/crawl/
 !scripts/crawl/find_missing.py
