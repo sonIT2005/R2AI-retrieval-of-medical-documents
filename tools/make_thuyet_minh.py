@@ -148,6 +148,8 @@ vị trí khớp nhất.</li>
     ["Crawl bổ sung của đội", "<code>vibiomir_s3/db_extra/</code>: các URL còn thiếu, tải bằng curl_cffi, kiểm tra nội dung "
      "(loại trang CAPTCHA trả mã 200) — scripts/crawl/", "38 file SQLite, 6,1 GB"],
     ["Bản dịch câu hỏi", "Qwen3-8B, có trong repo: results/queries_translated.jsonl", "1.200 câu"],
+    ["Danh sách ứng viên + điểm reranker", "Có trong repo: results/D_bi02.jsonl, results/qwen_rerank_cache_q3r4B_passage.pkl, "
+     "results/qwen_rerank_cache_q3r8B_passage.pkl → tái tạo bài nộp không cần chạy lại tìm kiếm và reranker", "~22 MB"],
 ], ["22%", "58%", "20%"])}
 <h3>Làm sạch và phân đoạn</h3>
 <ul>
@@ -166,7 +168,7 @@ trích xuất dùng toàn bộ chữ trong thân trang (bỏ script, nav, header
     ["vibiomir_db_extra.tar", "vibiomir_s3/db_extra/ — crawl bổ sung của đội (6,1 GB)", "Có"],
     ["vibiomir_clean_corpus.tar", "clean/corpus/ — văn bản đã làm sạch (1,5 GB)", "Không (thay bước làm sạch)"],
     ["vibiomir_emb.tar", "emb/ — vector BGE-M3 (2,4 GB)", "Không (thay bước tạo vector)"],
-    ["vibiomir_results.tar", "results/: 9 lượt tìm, vector đoạn, điểm Qwen3-Reranker-8B (~3,6 GB)", "Không (thay ~8 giờ GPU)"],
+    ["vibiomir_results.tar", "results/: 9 lượt tìm, vector đoạn BGE-M3 (~3,6 GB)", "Không (thay ~1 giờ GPU)"],
 ], ["26%", "52%", "22%"])}
 <p>Dữ liệu dùng chung tải bằng: <code>hf download snute/ai_guru-S3 --repo-type dataset --local-dir vibiomir_s3</code> và
 <code>hf download AIGuruTinix/ViBioMIR links_corpus_vi_en_zh.parquet query.parquet --repo-type dataset --local-dir btc_data_v2</code>.</p>
