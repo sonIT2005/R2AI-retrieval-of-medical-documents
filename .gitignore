@@ -9,9 +9,45 @@
 !search_docs.py
 !translate_queries.py
 !make_submission.py
-!find_missing.py
-!crawl_missing2.py
+!build_submission.sh
+!dyn_cut.py
+!qwen_rerank.py
+!llm_judge.py
+!ensemble_rerank.py
+!scripts/
+!scripts/crawl/
+!scripts/crawl/find_missing.py
+!scripts/crawl/crawl_missing2.py
 # Bản dịch câu hỏi (~1MB, mất ~1,5h GPU để tạo lại) — dùng chung cho cả đội
 !results/
 results/*
 !results/queries_translated.jsonl
+# Bài tốt nhất 0,3606: danh sách ứng viên (máy Sơn) + điểm Qwen3-Reranker-4B → tái tạo không cần GPU 6 giờ
+#   CAND=results/D_bi02.jsonl ./build_submission.sh best
+!results/D_bi02.jsonl
+!results/qwen_rerank_cache_q3r4B_passage.pkl
+# Nhãn "bộ dò" (Qwen3-14B) — tốn ~8 giờ GPU, dùng chung cho cả đội
+!results/judge/
+results/judge/*
+!results/judge/labels.jsonl
+!results/judge/labels_*.jsonl
+
+# Bộ công cụ agent (ai-contest-kit v10): luật cho AI, lệnh, hook, tài liệu tiến độ, hội đồng model
+!AGENTS.md
+!CLAUDE.md
+!.mcp.json
+!start.ps1
+!start.sh
+!.claude/
+!.claude/**
+!docs/
+!docs/**
+!tools/
+!tools/**
+# ...nhưng không bao giờ đưa lên: key API, trạng thái cục bộ, file biên dịch
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+.claude/state/
+__pycache__/

@@ -1,0 +1,147 @@
+# Nguồn tra cứu — round_03
+
+> Link do model trả về có thể sai hoặc bịa (nhất là link chỉ nằm trong văn bản). Mở bằng WebFetch trước khi dựa vào.
+
+### M2 = openai — vòng 1 — 0 lượt search
+- (không tiêu đề) — https://arxiv.org/abs/2402.03216
+- (không tiêu đề) — https://arxiv.org/abs/2506.05176
+- (không tiêu đề) — https://huggingface.co/Qwen/Qwen3-Reranker-0.6B
+- (không tiêu đề) — https://www.nist.gov/publications/bias-and-limits-pooling-large-collections
+
+### M3 = qwen — vòng 1 — 0 lượt search
+- README.md — https://github.com/QwenLM/Qwen3-Embedding/blob/78f711a5/README.md
+- Qwen/Qwen3-Embedding-0.6B · Hugging Face — https://huggingface.co/Qwen/Qwen3-Embedding-0.6B
+- Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models | Qwen — https://qwenlm.github.io/blog/qwen3-embedding/
+- Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models — https://arxiv.org/pdf/2506.05176v3.pdf
+- BGE-M3 vs Qwen3-Embedding 0.6B for local search | Local AI Wizard — https://local-ai-wizard.ricardoguia.com/lab/open-models-hardware/comparisons/bge-m3-vs-qwen3-embedding-0.6b
+- Where to Stop Reading a Ranked List? — https://trec.nist.gov/pubs/trec17/papers/uamsterdam-kamps.legal.rev.pdf
+- The score-distributional threshold optimization for adaptive binary classification tasks | Proceedings of the 24th annual international ACM SIGIR conference on Research and development in information retrieval — https://dlnext.acm.org/doi/10.1145/383952.384009
+- A Review of the F-Measure: Its History, Properties, Criticism, and Alternatives | ACM Computing Surveys — https://dl.acm.org/doi/full/10.1145/3606367
+- Tail-Aware Adaptive-k: Query-Adaptive Context Selection for Retrieval-Augmented Generation — https://arxiv.org/html/2606.11907
+- Dynamic Cutoff Prediction in Multi-Stage Retrieval Systems — https://jsc.github.io/publications/ccl16-adcs.pdf
+
+### M4 = kimi — vòng 1 — 0 lượt search
+- tuniepie/vietnamese-medical-question-answering — https://github.com/HiTunn/vietnamese-medical-question-answering
+- Vietnamese Medical Web Dataset - a codin-research Collection — https://huggingface.co/collections/codin-research/vietnamese-medical-web-dataset
+- xndien2004/ViDrill — https://github.com/xndien2004/ViDrill
+- [2206.09600] SPBERTQA: A Two-Stage Question Answering System Based on Sentence Transformers for Medical Texts — https://ar5iv.labs.arxiv.org/html/2206.09600
+- luongphambao/llm-medical-vietnam — https://github.com/luongphambao/llm-medical-vietnam
+- Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models | Qwen — https://qwenlm.github.io/blog/qwen3-embedding/
+- Qwen/Qwen3-Reranker-8B · Hugging Face — https://huggingface.co/Qwen/Qwen3-Reranker-8B
+- Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models — https://arxiv.org/html/2506.05176
+- Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models — https://arxiv.org/pdf/2506.05176v3.pdf
+- Embeddings and rerankers: open-weight model ranking · The Local Bench — https://thelocalbench.com/models/c/embeddings-rerankers
+- AIHUB.ML - Competition — https://aihub.ml/competitions/685
+- MIRAGE Leaderboard — https://gzxiong.github.io/MIRAGE/
+- R2MED: A Benchmark for Reasoning-Driven Medical Retrieval — https://r2med.github.io/
+- VM14K: First Vietnamese Medical Benchmark — https://doi.org/10.48550/arxiv.2506.01305
+- CMIRB (Chinese Medical Information Retrieval Benchmark) — https://huggingface.co/CMIRB
+
+### M7 = grok — vòng 1 — 0 lượt search
+- https://www.alphaxiv.org/abs/2609.37226 — https://www.alphaxiv.org/abs/2609.37226
+- https://arxiv.org/html/2505.12925v1 — https://arxiv.org/html/2505.12925v1
+- https://dantri.com.vn/noi-vu/giai-ma-cach-tim-liet-si-tu-ho-so-my-tiep-noi-ky-tich-dang-thuy-tram-20260718211350063.htm — https://dantri.com.vn/noi-vu/giai-ma-cach-tim-liet-si-tu-ho-so-my-tiep-noi-ky-tich-dang-thuy-tram-20260718211350063.htm
+- https://www.trychroma.com/research/evaluating-chunking — https://www.trychroma.com/research/evaluating-chunking
+- https://www.scribd.com/document/977728777/2025-vlsp-1-16 — https://www.scribd.com/document/977728777/2025-vlsp-1-16
+- https://arxiv.org/abs/2610.28173 — https://arxiv.org/abs/2610.28173
+- https://arxiv.org/html/2510.18691v1 — https://arxiv.org/html/2510.18691v1
+- https://milvus.io/ai-quick-reference/how-does-qwen3-instruction-prompting-improve-embedding-quality — https://milvus.io/ai-quick-reference/how-does-qwen3-instruction-prompting-improve-embedding-quality
+- https://competition.viettel.vn/rules — https://competition.viettel.vn/rules
+- https://aclanthology.org/2025.vlsp-1.17.pdf — https://aclanthology.org/2025.vlsp-1.17.pdf
+- https://vneconomy.vn/doanh-nghiep-mo-du-lieu-thuc-cho-cong-dong-giai-bai-toan-lon-ve-ai.htm — https://vneconomy.vn/doanh-nghiep-mo-du-lieu-thuc-cho-cong-dong-giai-bai-toan-lon-ve-ai.htm
+- https://github.com/tisu19021997/mcq-rag — https://github.com/tisu19021997/mcq-rag
+- https://baomoi.com/ung-dung-tri-tue-nhan-tao-trong-y-te-tro-ly-dac-luc-khong-the-thay-the-trai-tim-nguoi-thay-thuoc-c56337598.epi — https://baomoi.com/ung-dung-tri-tue-nhan-tao-trong-y-te-tro-ly-dac-luc-khong-the-thay-the-trai-tim-nguoi-thay-thuoc-c56337598.epi
+- https://x.com/BoboLinNotes/status/2113463111391047862 — https://x.com/BoboLinNotes/status/2113463111391047862
+- https://ar5iv.labs.arxiv.org/html/2206.09600 — https://ar5iv.labs.arxiv.org/html/2206.09600
+- https://thunderbit.com/blog/trafilatura — https://thunderbit.com/blog/trafilatura
+- https://vnexpress.net/gan-800-trieu-dong-thuong-cho-cac-giai-phap-ai-thuc-chien-5119245.html — https://vnexpress.net/gan-800-trieu-dong-thuong-cho-cac-giai-phap-ai-thuc-chien-5119245.html
+- https://www.researchgate.net/publication/389748163_Advancing_Vietnamese_Information_Retrieval_with_Learning_Objective_and_Benchmark — https://www.researchgate.net/publication/389748163_Advancing_Vietnamese_Information_Retrieval_with_Learning_Objective_and_Benchmark
+- https://robertz.co/knowledge/computer-science/ai-llm-engineering/web-scraper-extraction-quality/ — https://robertz.co/knowledge/computer-science/ai-llm-engineering/web-scraper-extraction-quality/
+- https://arxiv.org/html/2409.15163 — https://arxiv.org/html/2409.15163
+- https://www.facebook.com/forumtruongy/posts/project-2702-minigame-2-truy-v%E1%BA%BFt-h%C3%ACnh-%E1%BA%A3nh-khi-nh%C3%ACn-v%C3%A0o-ng%C3%A0nh-y-ng%C6%B0%E1%BB%9Di-ta-th%C6%B0%E1%BB%9Dng-c/1234529988786321/ — https://www.facebook.com/forumtruongy/posts/project-2702-minigame-2-truy-v%E1%BA%BFt-h%C3%ACnh-%E1%BA%A3nh-khi-nh%C3%ACn-v%C3%A0o-ng%C3%A0nh-y-ng%C6%B0%E1%BB%9Di-ta-th%C6%B0%E1%BB%9Dng-c/1234529988786321/
+- https://huggingface.co/BAAI/bge-m3/discussions/59 — https://huggingface.co/BAAI/bge-m3/discussions/59
+- https://docs.pinecone.io/guides/search/rerank-results — https://docs.pinecone.io/guides/search/rerank-results
+- https://huggingface.co/BAAI/bge-m3/discussions/115 — https://huggingface.co/BAAI/bge-m3/discussions/115
+- https://arxiv.org/html/2610.19424v1 — https://arxiv.org/html/2610.19424v1
+- https://www.jxxy.net/ai/articles/a-gh-20261010-156-ontological-reasoning-medical-knowledge-retrieval-vietnamese-clinical-notes/ — https://www.jxxy.net/ai/articles/a-gh-20261010-156-ontological-reasoning-medical-knowledge-retrieval-vietnamese-clinical-notes/
+- https://trafilatura.readthedocs.io/en/latest/corefunctions.html — https://trafilatura.readthedocs.io/en/latest/corefunctions.html
+- https://docs.apiyi.com/api-capabilities/rerank/rag-best-practices — https://docs.apiyi.com/api-capabilities/rerank/rag-best-practices
+- https://arxiv.org/html/2602.19548v1 — https://arxiv.org/html/2602.19548v1
+- https://huggingface.co/Qwen/Qwen3-Embedding-8B?inference_provider=novita,Feature — https://huggingface.co/Qwen/Qwen3-Embedding-8B?inference_provider=novita,Feature
+- https://jacobwhitmore.com/research/what-text-machines-read/ — https://jacobwhitmore.com/research/what-text-machines-read/
+- https://chinhsachcuocsong.vnanet.vn/khang-dinh-cac-gia-tri-truyen-thong-tot-dep-thanh-tuu-noi-bat-cua-nganh-y-te/56639.html — https://chinhsachcuocsong.vnanet.vn/khang-dinh-cac-gia-tri-truyen-thong-tot-dep-thanh-tuu-noi-bat-cua-nganh-y-te/56639.html
+- https://competition.viettel.vn/contests/var-2026 — https://competition.viettel.vn/contests/var-2026
+- https://abchaudary.me/blog/qdrant-bge-m3-hybrid-search-rag — https://abchaudary.me/blog/qdrant-bge-m3-hybrid-search-rag
+- https://raw.githubusercontent.com/QwenLM/Qwen3-Embedding/main/README.md — https://raw.githubusercontent.com/QwenLM/Qwen3-Embedding/main/README.md
+- https://jcsce.vnu.edu.vn/index.php/jcsce/article/view/6463/228 — https://jcsce.vnu.edu.vn/index.php/jcsce/article/view/6463/228
+- https://ump.edu.vn/tin-tuc-su-kien/tin-tuc/dai-hoc-y-duoc-thanh-pho-ho-chi-minh-to-chuc-thanh-cong-vong-chung-ket-cuoc-thi-ung-dung-ai-tu-dong-hoa-cong-viec/11073 — https://ump.edu.vn/tin-tuc-su-kien/tin-tuc/dai-hoc-y-duoc-thanh-pho-ho-chi-minh-to-chuc-thanh-cong-vong-chung-ket-cuoc-thi-ung-dung-ai-tu-dong-hoa-cong-viec/11073
+- https://huggingface.co/BAAI/bge-reranker-v2-m3/discussions/9 — https://huggingface.co/BAAI/bge-reranker-v2-m3/discussions/9
+- https://competition.viettel.vn/contests/medical-2026 — https://competition.viettel.vn/contests/medical-2026
+- https://www.bangkokbiznews.com/pr-news/news/prnews/1256470 — https://www.bangkokbiznews.com/pr-news/news/prnews/1256470
+- https://trafilatura.readthedocs.io/en/latest/usage-python.html — https://trafilatura.readthedocs.io/en/latest/usage-python.html
+- https://arxiv.org/html/2601.14952v2 — https://arxiv.org/html/2601.14952v2
+- https://quantaintelligence.ai/blog/measuring-retrieval-quality-hit-rate-mrr-and-recall-k-for-rag — https://quantaintelligence.ai/blog/measuring-retrieval-quality-hit-rate-mrr-and-recall-k-for-rag
+- https://community.intel.com/t/bge-m3-model-output-dense-sparse-and-colbert-embeddings/129265/3 — https://community.intel.com/t/bge-m3-model-output-dense-sparse-and-colbert-embeddings/129265/3
+- https://www.facebook.com/groups/343809696604156/posts/1404390943879354/ — https://www.facebook.com/groups/343809696604156/posts/1404390943879354/
+- https://github.com/adbar/trafilatura/issues/354 — https://github.com/adbar/trafilatura/issues/354
+- https://www.firecrawl.dev/blog/research-index-launch — https://www.firecrawl.dev/blog/research-index-launch
+- https://huggingface.co/Qwen/Qwen3-Reranker-4B — https://huggingface.co/Qwen/Qwen3-Reranker-4B
+- https://huggingface.co/mlboydaisuke/bge-m3-ExecuTorch — https://huggingface.co/mlboydaisuke/bge-m3-ExecuTorch
+- https://arxiv.org/html/2506.05176v2 — https://arxiv.org/html/2506.05176v2
+- https://link.springer.com/chapter/10.1007/978-3-032-10486-1_50 — https://link.springer.com/chapter/10.1007/978-3-032-10486-1_50
+- https://www.jianshu.com/p/975b732db5ad — https://www.jianshu.com/p/975b732db5ad
+- https://baomoi.com/trao-giai-viettel-ai-race-2026-tu-tai-nang-den-giai-phap-ai-thuc-tien-c56026865.epi — https://baomoi.com/trao-giai-viettel-ai-race-2026-tu-tai-nang-den-giai-phap-ai-thuc-tien-c56026865.epi
+- https://arxiv.org/abs/2610.26339 — https://arxiv.org/abs/2610.26339
+- https://docs.qwencloud.com/developer-guides/embeddings/reranking — https://docs.qwencloud.com/developer-guides/embeddings/reranking
+- https://context7.com/qwenlm/qwen3-embedding — https://context7.com/qwenlm/qwen3-embedding
+- https://medium.com/%40mrAryanKumar/comparative-analysis-of-qwen-3-and-bge-m3-embedding-models-for-multilingual-information-retrieval-72c0e6895413 — https://medium.com/%40mrAryanKumar/comparative-analysis-of-qwen-3-and-bge-m3-embedding-models-for-multilingual-information-retrieval-72c0e6895413
+- https://www.beri.net/article/cohere-vs-voyage-vs-bge-reranker-per-search-vs-per-token-cost-2026 — https://www.beri.net/article/cohere-vs-voyage-vs-bge-reranker-per-search-vs-per-token-cost-2026
+- https://laodong.vn/cong-nghe/15-giai-phap-ai-cua-nguoi-viet-tranh-tai-tai-au-lac-grand-prize-2026-1783293.ldo — https://laodong.vn/cong-nghe/15-giai-phap-ai-cua-nguoi-viet-tranh-tai-tai-au-lac-grand-prize-2026-1783293.ldo
+- https://github.com/adbar/trafilatura/blob/master/docs/usage-python.rst — https://github.com/adbar/trafilatura/blob/master/docs/usage-python.rst
+- https://arxiv.org/html/2505.14558v1 — https://arxiv.org/html/2505.14558v1
+- https://github.com/QwenLM/Qwen3-VL-Embedding/blob/main/src/models/qwen3_vl_reranker.py — https://github.com/QwenLM/Qwen3-VL-Embedding/blob/main/src/models/qwen3_vl_reranker.py
+- https://supermemory.ai/blog/solving-the-precision-recall-tradeoff-search-result-aggregation — https://supermemory.ai/blog/solving-the-precision-recall-tradeoff-search-result-aggregation
+- https://kaggle.com/competitions/llm-agentic-legal-information-retrieval — https://kaggle.com/competitions/llm-agentic-legal-information-retrieval
+- https://www.emergentmind.com/topics/bge-m3-model — https://www.emergentmind.com/topics/bge-m3-model
+- https://trafilatura.readthedocs.io/usage-cli.html — https://trafilatura.readthedocs.io/usage-cli.html
+- https://huggingface.co/Qwen/Qwen3-VL-Reranker-8B/resolve/main/scripts/qwen3_vl_reranker.py — https://huggingface.co/Qwen/Qwen3-VL-Reranker-8B/resolve/main/scripts/qwen3_vl_reranker.py
+- https://aclanthology.org/2025.vlsp-1.20.pdf — https://aclanthology.org/2025.vlsp-1.20.pdf
+- https://aclanthology.org/2025.vlsp-1.18.pdf — https://aclanthology.org/2025.vlsp-1.18.pdf
+- https://you.com/resources/rag-evaluation — https://you.com/resources/rag-evaluation
+- https://bge-model.com/tutorial/1_Embedding/1.2.4.html — https://bge-model.com/tutorial/1_Embedding/1.2.4.html
+- https://static.hlt.bme.hu/semantics/external/pages/inform%C3%A1ci%C3%B3-visszakeres%C3%A9s/en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval).html — https://static.hlt.bme.hu/semantics/external/pages/inform%C3%A1ci%C3%B3-visszakeres%C3%A9s/en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval).html
+- https://github.com/chisngooo/Vietnamese-Legal-Document-Retrieval — https://github.com/chisngooo/Vietnamese-Legal-Document-Retrieval
+- https://www.youtube.com/watch?v=NTu1fzobUCI — https://www.youtube.com/watch?v=NTu1fzobUCI
+- https://docs.scorable.ai/concepts-and-examples/usage/evaluators — https://docs.scorable.ai/concepts-and-examples/usage/evaluators
+- https://huggingface.co/BAAI/bge-m3 — https://huggingface.co/BAAI/bge-m3
+- https://competition.viettel.vn/contests/llm-2026 — https://competition.viettel.vn/contests/llm-2026
+- https://github.com/adbar/trafilatura/issues/70 — https://github.com/adbar/trafilatura/issues/70
+- https://sites.google.com/view/ALQAC-2025 — https://sites.google.com/view/ALQAC-2025
+- https://aclanthology.org/2025.vlsp-1.19.pdf — https://aclanthology.org/2025.vlsp-1.19.pdf
+- https://www.sciencedirect.com/science/article/abs/pii/S0306457312000295 — https://www.sciencedirect.com/science/article/abs/pii/S0306457312000295
+- https://arxiv.org/pdf/2608.00065 — https://arxiv.org/pdf/2608.00065
+- https://huggingface.co/nlpai-lab/KURE-Reranker-base — https://huggingface.co/nlpai-lab/KURE-Reranker-base
+- https://huggingface.co/BAAI/bge-reranker-v2-m3 — https://huggingface.co/BAAI/bge-reranker-v2-m3
+- https://aclanthology.org/2026.findings-eacl.110v1.pdf — https://aclanthology.org/2026.findings-eacl.110v1.pdf
+- https://www.youtube.com/watch?v=9YCb-IxtbFQ — https://www.youtube.com/watch?v=9YCb-IxtbFQ
+- https://aclanthology.org/2025.vlsp-1.16.pdf — https://aclanthology.org/2025.vlsp-1.16.pdf
+- https://qwen-ai.com/qwen-embeddings/ — https://qwen-ai.com/qwen-embeddings/
+- https://baomoi.com/phat-trien-tro-ly-ai-ho-tro-kham-benh-tu-du-lieu-hang-nghin-benh-nhan-c56339517.epi — https://baomoi.com/phat-trien-tro-ly-ai-ho-tro-kham-benh-tu-du-lieu-hang-nghin-benh-nhan-c56339517.epi
+- https://bulkmd.app/blog/readability-vs-trafilatura-extractors — https://bulkmd.app/blog/readability-vs-trafilatura-extractors
+
+### M8 = minimax — vòng 1 — 0 lượt search
+- VM14K: First Vietnamese Medical Benchmark — https://arxiv.org/html/2506.01305v1
+- Search code, repositories, users, issues, pull requests... — https://github.com/uit-huytannhiphuong/vimmcqa
+- tuniepie/vietnamese-medical-question-answering — https://github.com/HiTunn/vietnamese-medical-question-answering
+- Meddies/meddies-embedding-data · Datasets at Hugging Face — https://huggingface.co/datasets/Meddies/meddies-embedding-data
+- gdllelf/medical-qa-dataset · Datasets at Hugging Face — https://huggingface.co/datasets/gdllelf/medical-qa-dataset
+- Sampling Bias Due to Near-Duplicates in Learning to Rank — https://downloads.webis.de/publications/papers/froebe_2020c.pdf
+- The Effect of Content-Equivalent Near-Duplicates on the Evaluation of Search Engines — https://downloads-cf.webis.de/publications/papers/froebe_2020a.pdf
+- WebFAQ: A Multilingual Collection of Natural Q&A Datasets for Dense Retrieval — https://doi.org/10.1145/3726302.3731934
+- Sampling Bias Due to Near-Duplicates in Learning to Rank — https://doi.org/10.1145/3397271.3401212
+- Comparing Sparse and Dense Information Retrieval Methods on a Wikipedia-Derived NLP Dataset — https://www.cys.cic.ipn.mx/index.php/CyS/article/viewFile/6350/4184
+- backend/eval/label_manual.py — https://github.com/kushagrathisside/TRACE/blob/eeb09202/backend/eval/label_manual.py
+- LLMs can be Fooled into Labelling a Document as Relevant — https://arxiv.org/html/2501.17969v1
+- Bias and the limits of pooling for large collections | Information Retrieval — https://dlnext.acm.org/doi/10.1007/s10791-007-9032-x
+- Retrieval Metrics - Agent Evals & Guardrails — https://sarangk90.github.io/awesome-agent-evals-and-guardrails/02-offline-evals/02-retrieval-metrics/
+- Limitations of Automatic Relevance Assessments with Large Language Models for Fair and Reliable Retrieval Evaluation — https://arxiv.org/html/2411.13212v3

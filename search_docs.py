@@ -39,25 +39,30 @@ BM25_MAX_CHARS = 10000
 POOL = 300
 RRF_K = 60
 # BM25 trên câu dịch lệch từ vựng với bài gốc (top-10 chỉ trùng ~3% với dense) → trọng số thấp
-DEFAULT_WEIGHTS = "bm25_zh=0.3,bm25_en=0.3"
+DEFAULT_WEIGHTS = "bm25_vi=0.33,bm25_zh=0.3,bm25_en=0,bm25bi_vi=0.2"  # cấu hình tốt nhất (exp-010/029/057)
 
 RUNS = {  # tên: (cách tìm, ngôn ngữ câu hỏi, nhóm tài liệu)
     "bm25_vi": ("bm25", "vi", "vi"),
     "bm25_zh": ("bm25", "zh", "zh"),
     "bm25_en": ("bm25", "en", "en"),
+    "bm25bi_vi": ("bm25", "vi", "vi"),  # BM25 trên cặp âm tiết liền nhau ("huyết áp", "đau đầu")
     "dense_vi_vi": ("dense", "vi", "vi"),
     "dense_vi_zh": ("dense", "vi", "zh"),
     "dense_vi_en": ("dense", "vi", "en"),
     "dense_zh_zh": ("dense", "zh", "zh"),
     "dense_en_en": ("dense", "en", "en"),
-}
+}  # fuse() chỉ gộp các lượt có tên ở đây — file results/run_*.jsonl lạ bị bỏ qua
 
 _hv = dict(n_features=N_FEATURES, alternate_sign=False, norm=None, dtype=np.float32)
 VEC = {
     "vi": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b", **_hv),
     "en": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w\w+\b", stop_words="english", **_hv),
     "zh": HashingVectorizer(lowercase=True, token_pattern=r"\S+", **_hv),  # văn bản đã tách từ bằng jieba
+    # cặp âm tiết: nhiều tổ hợp hơn từ đơn → 2^24 chiều để giảm va chạm băm
+    "vi_bi": HashingVectorizer(lowercase=True, token_pattern=r"(?u)\b\w+\b", ngram_range=(2, 2),
+                               **{**_hv, "n_features": 2 ** 24}),
 }
+BM25_VEC = {"bm25bi_vi": "vi_bi"}  # lượt BM25 dùng bộ tách khác nhóm ngôn ngữ của nó (mặc định = tên nhóm)
 
 
 # ── Dữ liệu ──────────────────────────────────────────────────────────────
@@ -105,8 +110,8 @@ def load_run(name):
 
 # ── BM25 theo từng nhóm ngôn ngữ ─────────────────────────────────────────
 
-def prepare(group, texts):
-    if group != "zh":
+def prepare(key, texts):
+    if key != "zh":  # chỉ chỉ mục BM25 "zh" tách từ bằng jieba
         return texts
     import jieba
     jieba.setLogLevel(60)
@@ -114,31 +119,32 @@ def prepare(group, texts):
 
 
 def _part_tf(args):
-    path, group, host_group = args
+    path, group, host_group, key = args
     t = pq.read_table(path, columns=["doc_id", "host", "title", "text"]).to_pandas()
     t = t[t["host"].map(host_group).fillna("vi") == group]
     if t.empty:
         return None
     docs = (t["title"] + "\n" + t["text"]).str.slice(0, BM25_MAX_CHARS).tolist()
-    return t["doc_id"].to_numpy(), VEC[group].transform(prepare(group, docs)).tocsr()
+    return t["doc_id"].to_numpy(), VEC[key].transform(prepare(key, docs)).tocsr()
 
 
-def build_bm25(group, host_group):
-    d = f"{INDEX}/{group}"
+def build_bm25(group, host_group, key):
+    d = f"{INDEX}/{key}"
+    nf = VEC[key].n_features
     parts = sorted(glob.glob(f"{CORPUS}/*.parquet"))
     newest = max(os.path.getmtime(p) for p in parts)
     if os.path.exists(f"{d}/W.npz") and os.path.getmtime(f"{d}/W.npz") > newest:
         return sp.load_npz(f"{d}/W.npz"), np.load(f"{d}/ids.npy")
     with Pool(min(30, os.cpu_count() or 4)) as pool:
-        res = [r for r in tqdm(pool.imap(_part_tf, [(p, group, host_group) for p in parts]),
-                               total=len(parts), desc=f"BM25 {group}: tách từ") if r is not None]
+        res = [r for r in tqdm(pool.imap(_part_tf, [(p, group, host_group, key) for p in parts]),
+                               total=len(parts), desc=f"BM25 {key}: tách từ") if r is not None]
     ids = np.concatenate([i for i, _ in res])
     mats = [m for _, m in res]
     dls = [np.asarray(m.sum(axis=1)).ravel() for m in mats]
     avgdl = np.concatenate(dls).mean()
-    df = np.zeros(N_FEATURES, dtype=np.int64)
+    df = np.zeros(nf, dtype=np.int64)
     for m in mats:
-        df += np.bincount(m.indices, minlength=N_FEATURES)
+        df += np.bincount(m.indices, minlength=nf)
     n = len(ids)
     idf = np.log(1 + (n - df + 0.5) / (df + 0.5)).astype(np.float32)
     for m, dl in zip(mats, dls):
@@ -149,14 +155,15 @@ def build_bm25(group, host_group):
     os.makedirs(d, exist_ok=True)
     sp.save_npz(f"{d}/W.npz", W, compressed=False)
     np.save(f"{d}/ids.npy", ids)
-    print(f"  BM25 {group}: {n:,} tài liệu")
+    print(f"  BM25 {key}: {n:,} tài liệu")
     return W, ids
 
 
 def run_bm25(name, queries, host_group):
     _, _, group = RUNS[name]
-    W, ids = build_bm25(group, host_group)
-    Q = VEC[group].transform(prepare(group, [q for _, q in queries])).tocsr()
+    key = BM25_VEC.get(name, group)
+    W, ids = build_bm25(group, host_group, key)
+    Q = VEC[key].transform(prepare(key, [q for _, q in queries])).tocsr()
     Q.data[:] = 1.0
     WT = W.T.tocsr()
     all_ids, all_scores = [], []
@@ -173,6 +180,8 @@ def run_bm25(name, queries, host_group):
 # ── Dense (BGE-M3), tìm riêng trong từng nhóm ngôn ngữ ──────────────────
 
 def run_dense(names, qs, doc_group):
+    if not names:
+        return
     import torch
     from sentence_transformers import SentenceTransformer
 
@@ -186,7 +195,7 @@ def run_dense(names, qs, doc_group):
 
     files = sorted(glob.glob(f"{EMB}/*.parquet.npy"))
     sizes = [np.load(f, mmap_mode="r").shape[0] for f in files]
-    E = torch.empty((sum(sizes), 1024), dtype=torch.float16, device="cuda")
+    E = torch.empty((sum(sizes), np.load(files[0], mmap_mode="r").shape[1]), dtype=torch.float16, device="cuda")
     ids = np.empty(sum(sizes), dtype=np.int64)
     o = 0
     for f, n in tqdm(list(zip(files, sizes)), desc="Dense: nạp vector lên GPU"):
@@ -201,7 +210,8 @@ def run_dense(names, qs, doc_group):
         Eg = E.index_select(0, torch.from_numpy(rows).to("cuda"))
         all_ids, all_scores = [], []
         for i in range(0, len(qv[qlang]), 64):
-            s, top = torch.topk(qv[qlang][i:i + 64] @ Eg.T, POOL, dim=1)
+            S = qv[qlang][i:i + 64] @ Eg.T
+            s, top = torch.topk(S, POOL, dim=1)
             for srow, irow in zip(s.float().cpu().numpy(), top.cpu().numpy()):
                 all_ids.append(ids[rows[irow]])
                 all_scores.append(srow)
@@ -213,7 +223,7 @@ def run_dense(names, qs, doc_group):
 
 # ── Gộp: RRF trong từng ngôn ngữ, rồi ghép theo hạn mức ──────────────────
 
-def fuse(qs, quota, weights, out_name=None):
+def fuse(qs, quota, weights, out_name=None, rrf_k=RRF_K):
     have = [n for n in RUNS if os.path.exists(f"{OUT}/run_{n}.jsonl") and weights.get(n, 1.0) > 0]
     runs = {n: load_run(n) for n in have}
     by_group = {g: [n for n in have if RUNS[n][2] == g] for g in GROUPS}
@@ -230,7 +240,7 @@ def fuse(qs, quota, weights, out_name=None):
                 for n in by_group[g]:
                     w = weights.get(n, 1.0)
                     for rank, d in enumerate(runs[n].get(qid, [])):
-                        score[d] = score.get(d, 0.0) + w / (RRF_K + rank + 1)
+                        score[d] = score.get(d, 0.0) + w / (rrf_k + rank + 1)
                 best = sorted(score.items(), key=lambda x: -x[1])[:quota[g]]
                 merged += [((j + 1) / quota[g], gi, d, s, g) for j, (d, s) in enumerate(best)]
             merged.sort()
@@ -261,24 +271,28 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--quota", default="10,5,5", help="Số tài liệu mỗi câu cho Việt,Trung,Anh")
     ap.add_argument("--only-fuse", action="store_true", help="Không tìm lại, chỉ gộp từ các lượt đã chạy")
-    ap.add_argument("--weights", default=DEFAULT_WEIGHTS,
-                    help="Trọng số lượt tìm khi gộp, vd 'bm25_zh=0.3,bm25_en=0' (0 = bỏ hẳn; mặc định 1)")
+    ap.add_argument("--weights", default="",
+                    help="Ghi đè trọng số từng lượt lên DEFAULT_WEIGHTS, vd 'bm25_zh=0,bm25_vi=0.5' "
+                         "(0 = bỏ hẳn; lượt không có trong mặc định = 1)")
     ap.add_argument("--out", default=None, help="Tên file kết quả gộp (không cần .jsonl)")
+    ap.add_argument("--runs", default=None, help="Chỉ chạy các lượt này, vd 'dense_vi_zh' (mặc định: tất cả)")
+    ap.add_argument("--rrf-k", type=int, default=RRF_K, help="Hằng số k của RRF khi gộp (mặc định 60)")
     args = ap.parse_args()
     quota = dict(zip(GROUPS, map(int, args.quota.split(","))))
-    weights = {k: float(v) for k, v in (kv.split("=") for kv in args.weights.split(",") if kv)}
+    parse = lambda s: {k: float(v) for k, v in (kv.split("=") for kv in s.split(",") if kv)}
+    weights = {**parse(DEFAULT_WEIGHTS), **parse(args.weights)}  # --weights ghi đè TỪNG lượt lên mặc định
 
     qs = load_queries()
     print(f"{len(qs['vi'])} câu hỏi | ngôn ngữ câu hỏi sẵn có: {', '.join(qs)}")
     if not args.only_fuse:
         doc_group, host_group = load_meta()
         print("Tài liệu theo nhóm:", doc_group.value_counts().to_dict())
-        todo = [n for n, (_, ql, _) in RUNS.items() if ql in qs]
+        todo = [n for n, (_, ql, _) in RUNS.items() if ql in qs and (not args.runs or n in args.runs.split(","))]
         for n in todo:
             if RUNS[n][0] == "bm25":
                 run_bm25(n, qs[RUNS[n][1]], host_group)
         run_dense([n for n in todo if RUNS[n][0] == "dense"], qs, doc_group)
-    show_examples(fuse(qs, quota, weights, args.out))
+    show_examples(fuse(qs, quota, weights, args.out, args.rrf_k))
 
 
 if __name__ == "__main__":

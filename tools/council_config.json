@@ -1,0 +1,306 @@
+{
+  "_note": "Mặc định: 7 model qua OpenRouter (1 key) + DeepSeek gọi thẳng. Slug model có thể đã đổi: chạy `python3 tools/council.py --find <từ khoá>` để lấy slug đúng rồi sửa 'model'.",
+  "_search_note": "OpenRouter: tool openrouter:web_search (engine auto = search gốc của hãng nếu có, không thì Exa) + reasoning.effort. max_uses/max_total_results/max_tool_calls để chặn chi phí search.",
+  "response_language": "Vietnamese",
+  "default_max_tokens": 32000,
+  "timeout_seconds": 1200,
+  "default_rounds": 2,
+  "max_chars_per_answer": 15000,
+  "search_in_rounds": [
+    1
+  ],
+  "headroom_compress": false,
+  "_headroom_note": "true = nén brief/bài vòng 2 bằng Headroom (cần `pip install headroom-ai`). Văn xuôi nén được ít; lợi nhiều khi brief có log/JSON.",
+  "default_preset": "stuck",
+  "presets": {
+    "all": [
+      "grok",
+      "openai",
+      "deepseek",
+      "qwen",
+      "glm",
+      "minimax",
+      "kimi",
+      "gemini"
+    ],
+    "stuck": [
+      "deepseek",
+      "grok",
+      "minimax",
+      "qwen"
+    ],
+    "plan": [
+      "openai",
+      "glm",
+      "gemini",
+      "kimi"
+    ],
+    "cheap": [
+      "deepseek",
+      "qwen",
+      "glm"
+    ]
+  },
+  "providers": {
+    "grok": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "x-ai/grok-4.7",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "red_team",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      }
+    },
+    "openai": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "openai/gpt-6-luna",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "plan_critic",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      }
+    },
+    "deepseek": {
+      "api": "chat",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-v4-pro",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "role": "root_cause",
+      "max_tokens": 32000,
+      "thinking": {"type": "enabled"},
+      "reasoning_effort": "high"
+    },
+    "qwen": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "qwen/qwen3.8-max-0902",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "competition_veteran",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      }
+    },
+    "glm": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "z-ai/glm-5.3",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "simplifier",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      }
+    },
+    "minimax": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "data_detective",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      }
+    },
+    "kimi": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "moonshotai/kimi-k3",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "alternative",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      }
+    },
+    "gemini": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "google/gemini-4-argon",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "pragmatist",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      }
+    },
+    "deepseek_or": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "deepseek/deepseek-v4-pro-0813",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "role": "root_cause",
+      "max_tokens": 32000,
+      "thinking_body": {
+        "reasoning": {
+          "effort": "high"
+        }
+      },
+      "search": {
+        "body": {
+          "tools": [
+            {
+              "type": "openrouter:web_search",
+              "parameters": {
+                "max_results": 5,
+                "max_total_results": 15,
+                "max_uses": 3
+              }
+            }
+          ],
+          "max_tool_calls": 5
+        }
+      },
+      "enabled": false
+    }
+  },
+  "_provider_notes": {
+    "deepseek": "Gọi thẳng API DeepSeek (credit sẵn có): luôn suy nghĩ nhưng không tra cứu web. Muốn DeepSeek tra cứu: bật deepseek_or (qua OpenRouter, sửa slug bằng --find deepseek) và thay 'deepseek' bằng 'deepseek_or' trong presets.",
+    "search_cost": "Model có search gốc (OpenAI, Gemini, Grok…) tính phí search theo hãng; model khác dùng Exa qua OpenRouter, tính theo lượt request."
+  },
+  "default_research": "off",
+  "max_chars_research": 8000,
+  "research": {
+    "pro": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "perplexity/sonar-pro-search",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "max_tokens": 32000,
+      "timeout_seconds": 300
+    },
+    "deep": {
+      "api": "chat",
+      "base_url": "https://openrouter.ai/api/v1",
+      "model": "perplexity/sonar-deep-research",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "max_tokens": 32000,
+      "timeout_seconds": 900
+    }
+  },
+  "_research_note": "Perplexity Sonar qua OpenRouter (cùng key) — thay cho Perplexity MCP. Sonar tự tra cứu, không nhận tools. 'deep' chạy nhiều lượt search nên chậm và đắt hơn hẳn; dùng cho chủ đề rộng, không dùng mỗi vòng."
+}

@@ -326,10 +326,11 @@ def main():
     os.makedirs(os.path.join(out_dir, "boiler"), exist_ok=True)
     os.makedirs(os.path.join(out_dir, "parts"), exist_ok=True)
 
-    dbs = [p for d in SRC_DIRS for p in sorted(glob.glob(f"vibiomir_s3/{d}/*.sqlite"))]
+    # normpath: trên Windows glob trả về "vibiomir_s3/db\x.sqlite" → db_tag tách sai thư mục
+    dbs = [os.path.normpath(p) for d in SRC_DIRS for p in sorted(glob.glob(f"vibiomir_s3/{d}/*.sqlite"))]
     if args.test:
         want = ("db/www.120ask.com", "db/www.cnkang.com", "db/suckhoedoisong.vn", "db/baophutho.vn")
-        dbs = [p for p in dbs if any(w in p for w in want)][:4]
+        dbs = [p for p in dbs if any(w in p.replace(os.sep, "/") for w in want)][:4]
     stale = invalidate_updated(dbs, out_dir)
     if stale:
         print(f"{len(stale)} file SQLite mới cập nhật → làm sạch lại: {', '.join(stale[:6])}{' …' if len(stale) > 6 else ''}")

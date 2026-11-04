@@ -1,0 +1,18 @@
+# Đường dẫn được bảo vệ — hook protect_paths.py chặn Claude sửa/xoá/ghi đè các file khớp mẫu.
+# Mỗi dòng 1 mẫu, tính từ gốc project. Mẫu không có "/" thì khớp tên file ở mọi thư mục.
+# Bỏ dấu # đầu dòng để bật.
+
+data/raw/**
+data/splits/**
+.env
+tools/.env
+
+# Bật khi script đánh giá đã chốt (để không "sửa thước đo cho đẹp số"):
+# eval/**
+
+# Bật khi đã có bài nộp tốt: bản sao lưu bài an toàn (model + logits + lệnh tạo lại):
+# final_submissions/**
+
+# Ví dụ cho dự án web:
+# package-lock.json
+# migrations/**
