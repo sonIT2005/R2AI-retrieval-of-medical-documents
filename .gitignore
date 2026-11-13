@@ -49,7 +49,6 @@ results/judge/*
 # ảnh kiểm tra và hồ sơ Chrome của bộ kiểm
 !web/
 !web/**
-web/assets/
 web/data/
 web/shots/
 web/.taste-skill/
