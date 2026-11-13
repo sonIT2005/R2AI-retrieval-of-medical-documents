@@ -63,12 +63,13 @@ Bỏ qua được các bước tốn thời gian nhất. Tải từ cùng thư m
 |---|---|---|
 | `vibiomir_clean_corpus.tar` → `clean/corpus/` | Làm sạch (~1 giờ 20) | 1,5 GB |
 | `vibiomir_emb.tar` → `emb/` | Vector BGE-M3 (~3 giờ GPU) | 2,4 GB |
-| `vibiomir_results.tar` → `results/` | 9 lượt tìm, vector đoạn, điểm Qwen3-Reranker-8B (~8 giờ GPU) | ~3,6 GB |
+| `vibiomir_results.tar` → `results/` | 9 lượt tìm, vector đoạn BGE-M3 (`chunk_cache.pkl`) | ~3,6 GB |
 
-**Link Google Drive:** `<LINK_GOOGLE_DRIVE>` · Kiểm tra toàn vẹn: `sha256sum -c SHA256SUMS`.
+**Link Google Drive:** `<https://drive.google.com/drive/folders/1zoATII9wMD3SAhux7n9Cu49K1jRjEwYQ?usp=sharing>` · Kiểm tra toàn vẹn: `sha256sum -c SHA256SUMS`.
 
 Đã có sẵn trong repo (không cần tải): `results/queries_translated.jsonl` (bản dịch câu hỏi),
-`results/D_bi02.jsonl` (danh sách ứng viên của bài nộp), `results/qwen_rerank_cache_q3r4B_passage.pkl` (điểm Qwen3-Reranker-4B).
+`results/D_bi02.jsonl` (danh sách ứng viên của bài nộp), `results/qwen_rerank_cache_q3r4B_passage.pkl` và
+`results/qwen_rerank_cache_q3r8B_passage.pkl` (điểm Qwen3-Reranker-4B / 8B).
 
 ## 4. Mô hình
 
@@ -107,7 +108,7 @@ Dùng danh sách ứng viên và điểm reranker có trong repo / Google Drive:
 ```bash
 conda activate vibiomir
 CAND=results/D_bi02.jsonl ./build_submission.sh prr_m140             # bài 0,3606 — chỉ cần clean/corpus + results/
-CAND=results/D_bi02.jsonl RERANK=ens ./build_submission.sh ens_m140  # cần thêm vibiomir_results.tar (điểm 8B)
+CAND=results/D_bi02.jsonl RERANK=ens ./build_submission.sh ens_m140  # bài nộp private (điểm 8B cũng có trong repo)
 ```
 
 Nếu chưa có `results/chunk_cache.pkl` (trong `vibiomir_results.tar`), lần chạy đầu `make_submission.py` và `qwen_rerank.py`

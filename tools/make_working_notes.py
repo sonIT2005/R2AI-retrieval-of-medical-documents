@@ -138,11 +138,13 @@ para("Bài viết mô tả hệ thống của đội loi_cuda cho nhiệm vụ V
      "sang tiếng Trung và tiếng Anh bằng Qwen3-8B; (3) chín lượt tìm kiếm riêng theo từng nhóm ngôn ngữ (BM25 theo âm "
      "tiết, BM25 theo cặp âm tiết, BM25 tiếng Trung tách từ bằng jieba, và vector BGE-M3 cùng ngôn ngữ lẫn xuyên ngôn "
      "ngữ), gộp bằng Reciprocal Rank Fusion có trọng số với k = 150; (4) chấm lại 200 ứng viên đầu mỗi câu bằng "
-     "Qwen3-Reranker-4B trên đoạn khớp nhất của tài liệu; (5) cắt số tài liệu theo từng câu dựa trên điểm của reranker "
+     "Qwen3-Reranker (bản 4B; bài nộp private gộp thêm bản 8B) trên đoạn khớp nhất của tài liệu; (5) cắt số tài liệu theo từng câu dựa trên điểm của reranker "
      "và trích một đoạn 4.000 ký tự quanh vị trí khớp nhất của mỗi tài liệu. Bài nộp tốt nhất đạt **0,3606** trên bảng "
      "xếp hạng public (F2 tài liệu 0,3938; F2 đoạn 0,3274), tăng từ 0,1606 của bản đầu tiên qua hơn 70 thí nghiệm được ghi "
-     "nhật ký. Chúng tôi trình bày cả các hướng thất bại (HyDE, tách câu hỏi nhiều ý, reranker nhỏ, mô hình embedding "
-     "thứ hai) và một số bài học về cách đo lường khi chỉ có điểm tổng hợp từ bảng xếp hạng.")
+     "nhật ký. Sau khi vòng public đóng, chúng tôi xây một tập phát triển gán nhãn bằng LLM (Qwen3-14B và Gemma 3 12B) "
+     "trên 300 câu, hiệu chuẩn bằng các bài đã nộp, để chọn bài nộp private: gộp điểm Qwen3-Reranker-4B và 8B. Chúng tôi "
+     "trình bày cả các hướng thất bại (HyDE, tách câu hỏi nhiều ý, reranker nhỏ, mô hình embedding thứ hai) và một số bài "
+     "học về cách đo lường khi chỉ có điểm tổng hợp từ bảng xếp hạng.")
 para("**Từ khoá:** truy hồi thông tin xuyên ngôn ngữ, y sinh, tiếng Việt, BM25, BGE-M3, Reciprocal Rank Fusion, "
      "reranker, F2.")
 
@@ -158,7 +160,8 @@ para("Ràng buộc của cuộc thi định hình thiết kế: chỉ dùng mô 
      "tối đa 10 bài mỗi ngày và file nộp dưới 100 MB. Toàn bộ hệ thống chạy trên một máy cá nhân (RTX 5060 Ti 16 GB, "
      "32 luồng CPU, 29 GB RAM). Đóng góp của bài viết gồm: (i) một quy trình truy hồi lai chạy được trên phần cứng phổ "
      "thông; (ii) phân tích có số liệu cho từng quyết định thiết kế, kể cả các thử nghiệm không thành công; (iii) cách "
-     "đo độ chính xác biên từ điểm tổng hợp của bảng xếp hạng để quyết định số lượng tài liệu cần nộp.")
+     "đo độ chính xác biên từ điểm tổng hợp của bảng xếp hạng để quyết định số lượng tài liệu cần nộp; (iv) một tập phát "
+     "triển gán nhãn bằng LLM, kèm cách hiệu chuẩn và các giới hạn đã đo được.")
 
 # ── 2 ────────────────────────────────────────────────────────────────────
 h1("2. Nhiệm vụ và dữ liệu")
@@ -177,7 +180,7 @@ para("Ban tổ chức (BTC) công bố danh sách 1.220.598 URL (740.598 trang V
      "(98,8%): 729.490 Việt, 236.518 Trung và 239.698 PubMed.")
 para("Từ điểm tổng hợp của bảng xếp hạng (không dùng nhãn từng câu), chúng tôi suy ra ba đặc điểm của đáp án: (a) đáp án "
      "rất lớn, trung vị khoảng 60 tài liệu mỗi câu (tối đa 190), mỗi tài liệu đúng có khoảng một đoạn tham chiếu; (b) "
-     "bài nộp chỉ gồm tài liệu PubMed đạt 0 điểm, tức đáp án hiện không có tài liệu tiếng Anh; (c) độ chính xác tài liệu "
+     "bài nộp thử chỉ gồm tài liệu PubMed đạt 0 điểm, nên nhóm tiếng Anh được đặt hạn mức 0; (c) độ chính xác tài liệu "
      "ở nhóm Việt (khoảng 0,38) cao hơn nhóm Trung (khoảng 0,16), nhưng độ chính xác đoạn thì ngược lại, vì bài Việt dài "
      "hơn nhiều (trung vị 4.387 ký tự so với 547 ký tự).")
 
@@ -218,14 +221,16 @@ para("Trong từng nhóm, tài liệu d nhận điểm RRF có trọng số: s(d
      "dense 1. Mỗi câu giữ 300 ứng viên Việt và 130 ứng viên Trung, xen kẽ theo tỉ lệ hạn mức. Giá trị k lớn làm phẳng "
      "khoảng cách giữa các hạng, nên tài liệu được nhiều lượt cùng tìm thấy ở hạng trung bình được ưu tiên hơn tài "
      "liệu chỉ đứng đầu một lượt. Điều này phù hợp với đáp án lớn (khoảng 60 tài liệu/câu).")
-h2("3.5. Chấm lại bằng Qwen3-Reranker-4B")
+h2("3.5. Chấm lại bằng Qwen3-Reranker")
 para("Với mỗi câu, 150 ứng viên Việt và 50 ứng viên Trung đầu tiên được chấm bằng Qwen3-Reranker-4B. Đầu vào gồm câu hỏi "
      "**đầy đủ** (tài liệu Trung dùng bản dịch Trung), tiêu đề và **đoạn khớp nhất** của tài liệu (đoạn có cosine BGE-M3 "
      "cao nhất với câu hỏi, cắt còn 1.200 ký tự) thay vì phần đầu bài: 36,6% bài Việt có đoạn khớp nhất nằm sau ký tự "
      "thứ 2.000. Điểm là xác suất token “yes”. Thứ tự trong pool được sắp lại hoàn toàn theo điểm reranker; tài liệu "
      "ngoài pool giữ thứ tự cũ và xếp sau. Chấm 240.000 cặp mất khoảng 6,3 giờ (10,6 cặp/giây, trung bình 384 "
      "token/cặp, lô 12.000 token; lô 24.000 token gây tràn bộ nhớ 16 GB). Điểm được lưu đệm sau mỗi khối 40.000 cặp "
-     "nên quá trình có thể dừng và chạy tiếp.")
+     "nên quá trình có thể dừng và chạy tiếp. Bài nộp private dùng thêm Qwen3-Reranker-8B (nạp 8-bit bằng bitsandbytes "
+     "để vừa thẻ 16 GB; 8,2 cặp/giây, khoảng 8 giờ cho 240.000 cặp) và lấy trung bình xác suất “yes” của hai mô hình "
+     "làm điểm cuối.")
 h2("3.6. Cắt số tài liệu theo từng câu")
 para("Đáp án mỗi câu dao động từ vài đến 190 tài liệu, nên số tài liệu nộp cũng thay đổi theo câu. Trong từng ngôn ngữ, "
      "chúng tôi giữ các tài liệu có điểm ≥ τ·(điểm cao nhất của câu đó); τ được dò nhị phân sao cho trung bình số tài "
@@ -256,7 +261,9 @@ table(["Bước (thí nghiệm)", "F2 tài liệu", "F2 đoạn", "Điểm"], [
     ["+ BM25 cặp âm tiết, trọng số 0,2 (exp-057)", "0,3748", "0,3135", "0,3442"],
     ["+ Qwen3-Reranker-4B, cắt theo điểm reranker, TB 180 (exp-066)", "—", "—", "0,3479"],
     ["Cắt TB 160 → 140 tài liệu/câu (exp-069, 073)", "0,3938", "0,3274", "**0,3606**"],
-], [9.2, 2.2, 2.2, 2.0], "Bảng 1. Các bước cải thiện chính trên bảng xếp hạng public (600 câu)", bold_rows=(11,))
+    ["+ gộp điểm Qwen3-Reranker-8B — bài nộp private (exp-079)", "—", "—", "tập PT: +0,0051"],
+], [9.2, 2.2, 2.2, 2.0], "Bảng 1. Các bước cải thiện chính trên bảng xếp hạng public (600 câu); dòng cuối đo bằng tập "
+   "phát triển (mục 4.2) vì vòng private không công bố điểm", bold_rows=(11,))
 para("Bài tốt nhất có Precision / Recall tài liệu 0,2379 / 0,5565 và Precision / Recall đoạn 0,2035 / 0,4513. "
      "Bước nhảy giữa exp-040 (0,3193) và exp-041 (0,3365) xảy ra khi dựng lại danh sách ứng viên trên một máy khác với "
      "cùng các bước sau; chúng tôi chưa tách được nguyên nhân (kho tài liệu đầy đủ hơn khoảng 15.000 bài Việt, hoặc khác "
@@ -272,9 +279,27 @@ table(["Thử nghiệm", "Thay đổi điểm", "Nhận xét"], [
     ["BM25 cặp chữ Hán (exp-059, 060)", "−0,0006 … −0,0016", "Trùng 32% với lượt jieba"],
     ["Tách câu hỏi nhiều ý thành câu con (exp-063…065)", "−0,0046 … −0,0198", "Recall không tăng, precision giảm"],
     ["RRF giữa thứ tự cũ và reranker (prrf, exp-066)", "−0,0091 so với prr", "Điểm RRF phẳng làm hỏng bước cắt"],
-    ["Đoạn 3.000 / 2.500 ký tự (exp-067, 068)", "−0,0045 / −0,0109", "Đoạn tham chiếu thường dài"],
+    ["Đoạn 3.000 / 2.500 ký tự (exp-067, 068)", "−0,0045 / −0,0109", "Đoạn ngắn hơn bắt được ít đoạn đúng hơn"],
     ["Đoạn 6.000 ký tự cho 30 tài liệu đầu (exp-039)", "+0,0002", "Bão hoà quanh 4.000 ký tự"],
+    ["Gộp 4B + 8B theo thứ hạng thay vì theo điểm (tập PT)", "−0,041 (tập PT)", "Điểm phẳng làm hỏng bước cắt"],
 ], [7.6, 3.2, 5.0], "Bảng 2. Các thử nghiệm bị bác bỏ (so với cấu hình tốt nhất tại thời điểm thử)")
+
+h2("4.2. Tập phát triển gán nhãn bằng LLM")
+para("Sau khi vòng public đóng, mọi thay đổi chỉ còn được đánh giá qua 5 lượt nộp private không công bố điểm. Chúng tôi "
+     "lấy ngẫu nhiên 300 câu (seed cố định) và gom mọi tài liệu mà 22 cấu hình đã nộp public cho các câu đó (trung bình "
+     "275 tài liệu/câu, 82.524 cặp). Qwen3-14B được hỏi “bác sĩ trả lời đúng câu hỏi này có dùng tài liệu này không?” và "
+     "trả lời Yes/No; điểm là log P(Yes) − log P(No) của token đầu (xác suất thô bão hoà ở 1,0 với nhiều tài liệu). "
+     "Gemma 3 12B (khác họ mô hình với reranker) chấm cùng tập để kiểm tra chéo. Với mỗi câu, khoảng 71 tài liệu điểm cao "
+     "nhất được coi là liên quan, rồi tính F2 tài liệu cho bất kỳ danh sách nộp nào.")
+para("Hai lựa chọn hiệu chuẩn được chọn theo mức tương quan với điểm public của 22 cấu hình: chỉ xét tài liệu nằm trong "
+     "top-300 của các lượt dense, và trừ một hằng số vào log-odds của tài liệu tiếng Trung (giám khảo cho tài liệu Trung "
+     "“liên quan” nhiều hơn tỉ lệ mà các bài nộp đầu cho thấy; hằng số riêng cho từng giám khảo, chọn để tỉ lệ độ chính xác "
+     "Việt/Trung ≈ 2,4). Kết quả trên 300 câu: với các cặp cấu hình chênh nhau ≥ 0,005 điểm public, tập phát triển xếp "
+     "đúng thứ tự 99% (134 cặp), Pearson 0,94; trên 149 câu không dùng khi chọn hằng số vẫn đạt 99% và 0,935; Gemma 3 12B "
+     "cho kết quả tương đương (99%, 0,936). Giới hạn đã đo: tập phát triển đánh giá sai khi so các độ sâu cắt khác nhau "
+     "(dự đoán bước 160 → 140 tài liệu tăng +0,0057, thực tế +0,0013), nên chỉ được dùng để so các phương án cùng độ sâu "
+     "cắt. Trên tập này, Qwen3-Reranker-8B hơn 4B +0,0035 (khoảng tin cậy 95%: +0,0003 … +0,0067) và gộp điểm hai mô "
+     "hình hơn 4B +0,0048 (+0,0026 … +0,0071), tương đương khoảng +0,0015 điểm public theo hệ số quy đổi 0,32.")
 
 # ── 5 ────────────────────────────────────────────────────────────────────
 h1("5. Phân tích")
@@ -284,10 +309,10 @@ para("Với một câu hỏi có G tài liệu đúng, nộp N tài liệu trong
      "biết, nên số trúng H = P × N. Hai bài nộp chỉ khác nhau một lát hạng (ví dụ hạng 201–250) cho ra độ chính xác biên "
      "của lát đó mà không cần nhãn từng câu. Chúng tôi dùng quy tắc này để chọn số tài liệu (lát 251–300 chỉ đúng 5,2%, "
      "dưới ngưỡng F2/5 ≈ 6,7%) và số đoạn trích (đoạn cho bài Việt hạng 86–135 đúng 10,2%, trên ngưỡng 5,7%).")
-h2("5.2. Đáp án gắn với toàn bộ câu hỏi")
+h2("5.2. Liên quan theo toàn bộ câu hỏi")
 para("Giả thuyết “câu hỏi nhiều ý cần tìm riêng từng ý” bị bác bỏ rõ ràng: lượt tìm bằng câu con đưa vào nhiều tài liệu "
      "mới với các câu có 3–4 ý (top-50 chỉ trùng 21–41% với lượt gốc), nhưng Recall tài liệu không tăng (0,5895 → "
-     "0,5877) trong khi Precision giảm. Nghĩa là các tài liệu chỉ nói về một ý của câu hỏi không được tính là đáp án. "
+     "0,5877) trong khi Precision giảm: các tài liệu chỉ nói về một ý của câu hỏi không làm tăng điểm. "
      "Ngược lại, reranker đọc câu hỏi đầy đủ cùng đoạn khớp nhất đem lại mức tăng lớn nhất của giai đoạn cuối (+0,016). "
      "Hai kết quả này nhất quán: mức liên quan được đánh giá theo toàn bộ bối cảnh câu hỏi.")
 h2("5.3. Reranker cần đi cùng bước cắt phù hợp")
@@ -298,28 +323,35 @@ para("Cùng một điểm reranker, sắp lại hoàn toàn theo điểm (prr, 0
 h2("5.4. Độ dài đoạn trích")
 para("Với cùng danh sách tài liệu (F2 tài liệu không đổi), Recall đoạn tăng đều theo độ dài cửa sổ: 2.500 ký tự → 0,4456; "
      "3.000 → 0,4652; 4.000 → 0,4795, trong khi cửa sổ 6.000 ký tự cho các tài liệu đầu gần như không thêm gì. Vì độ "
-     "trùng chia cho max(|c|, |g|), một đoạn nộp chỉ được tính đúng nếu đoạn tham chiếu dài ít nhất khoảng 40% đoạn nộp; "
-     "kết quả cho thấy đoạn tham chiếu thường dài vài nghìn ký tự. Khoảng 18% trường hợp tìm đúng tài liệu nhưng trượt "
+     "trùng chia cho max(|c|, |g|), đoạn nộp quá dài so với đoạn tham chiếu sẽ không được tính đúng; với cửa sổ đến "
+     "4.000 ký tự, đoạn dài hơn vẫn có lợi. Khoảng 18% trường hợp tìm đúng tài liệu nhưng trượt "
      "đoạn vẫn chưa giải thích được; gần như toàn bộ rơi vào bài Việt dài (54,6% bài Việt nộp dài hơn cửa sổ).")
+
+h2("5.5. Cỡ mô hình reranker")
+para("Cùng cách dùng (câu hỏi đầy đủ + đoạn khớp nhất), Qwen3-Reranker-0.6B gần như không thêm gì (+0,0004), bản 4B đem "
+     "lại +0,016 điểm public, còn bản 8B chỉ thêm khoảng +0,001 (đo bằng tập phát triển). Từ các thử nghiệm với reranker "
+     "nhỏ (bge-reranker-v2-m3, Qwen3-Reranker-0.6B), chúng tôi từng kết luận quá sớm rằng xếp hạng lại không có ích cho bài "
+     "toán này và để lỡ vài ngày. Bài học: trước khi loại bỏ một hướng, nên thử nhanh bản mô hình lớn hơn trên một mẫu nhỏ.")
 
 # ── 6 ────────────────────────────────────────────────────────────────────
 h1("6. Hạn chế và hướng phát triển")
 bullets([
-    "Mọi siêu tham số được dò trên 600 câu public; các mức chênh khoảng 0,001 nằm trong biên nhiễu khi chuyển sang tập "
-    "private. Một tập phát triển gán nhãn (thủ công hoặc bằng LLM làm giám khảo) sẽ giảm phụ thuộc vào bảng xếp hạng.",
-    "Reranker chỉ chấm 200 ứng viên/câu do giới hạn thời gian GPU; dùng bản 8B (cần lượng tử hoá trên thẻ 16 GB) hoặc "
-    "mở rộng pool có thể tăng thêm Recall.",
+    "Phần lớn siêu tham số được dò trên 600 câu public; các mức chênh khoảng 0,001 nằm trong biên nhiễu khi chuyển sang "
+    "tập private. Tập phát triển gán nhãn bằng LLM (mục 4.2) chỉ đáng tin khi so các phương án cùng độ sâu cắt.",
+    "Reranker chỉ chấm 200 ứng viên/câu (150 Việt + 50 Trung) do giới hạn thời gian GPU. Trên tập phát triển, khoảng 27% "
+    "tài liệu Việt hạng RRF 151–200 có nhãn được chấm là liên quan, nên mở rộng phạm vi chấm có thể tăng thêm Recall.",
     "Vector BGE-M3 chỉ biểu diễn 512 token đầu tài liệu; bài Việt dài cần biểu diễn theo đoạn tốt hơn (thử lấy max theo "
     "cửa sổ đã thất bại, exp-011).",
     "Chọn đoạn trích vẫn dùng cosine BGE-M3; chấm đoạn bằng reranker có thể giảm 18% trường hợp đúng tài liệu sai đoạn.",
-    "Nhóm PubMed tiếng Anh chưa được dùng vì đáp án hiện không có tài liệu tiếng Anh.",
+    "Nhóm PubMed tiếng Anh chưa được dùng (hạn mức 0, xem mục 2.2).",
 ])
 
 # ── 7 ────────────────────────────────────────────────────────────────────
 h1("7. Kết luận")
 para("Hệ thống của đội loi_cuda kết hợp nhiều lượt tìm từ vựng và ngữ nghĩa theo từng ngôn ngữ, gộp bằng RRF với k lớn, "
      "chấm lại bằng Qwen3-Reranker-4B trên đoạn khớp nhất và cắt số tài liệu theo độ tự tin của reranker, đạt 0,3606 trên "
-     "bảng xếp hạng public, toàn bộ chạy trên một GPU 16 GB. Ba yếu tố đóng góp nhiều nhất là: đoạn trích dài và có cho mọi "
+     "bảng xếp hạng public, toàn bộ chạy trên một GPU 16 GB; bài nộp private gộp thêm điểm Qwen3-Reranker-8B, được chọn "
+     "nhờ một tập phát triển gán nhãn bằng LLM đã hiệu chuẩn với các bài nộp public. Ba yếu tố đóng góp nhiều nhất là: đoạn trích dài và có cho mọi "
      "tài liệu; cắt số tài liệu theo từng câu; và reranker đủ mạnh đi kèm bước cắt dựa trên điểm của chính nó. Mã nguồn, "
      "nhật ký hơn 70 thí nghiệm và lệnh tái tạo bài nộp tốt nhất được lưu trong kho mã của đội.")
 
@@ -335,6 +367,7 @@ refs = [
     "Y. Zhang và cộng sự. Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models. "
     "arXiv:2506.05176, 2025.",
     "Qwen Team. Qwen3 Technical Report. arXiv:2505.09388, 2025.",
+    "Gemma Team. Gemma 3 Technical Report. arXiv:2503.19786, 2025.",
     "A. Barbaresi. Trafilatura: A Web Scraping Library and Command-Line Tool for Text Discovery and Extraction. "
     "ACL 2021 System Demonstrations.",
     "L. Gao, X. Ma, J. Lin, J. Callan. Precise Zero-Shot Dense Retrieval without Relevance Labels (HyDE). ACL 2023.",
