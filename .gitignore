@@ -44,6 +44,15 @@ results/judge/*
 !docs/**
 !tools/
 !tools/**
+# Web demo: mã (web/app), pdf.js (web/vendor), trang. Không đưa lên: bộ kit taste-skill chép vào web/assets (36 MB,
+# chép lại từ ~/.claude/skills/design-taste-frontend/assets), dữ liệu web/data (dựng bằng tools/build_demo_data.py),
+# ảnh kiểm tra và hồ sơ Chrome của bộ kiểm
+!web/
+!web/**
+web/assets/
+web/data/
+web/shots/
+web/.taste-skill/
 # ...nhưng không bao giờ đưa lên: key API, trạng thái cục bộ, file biên dịch
 .env
 .env.*
