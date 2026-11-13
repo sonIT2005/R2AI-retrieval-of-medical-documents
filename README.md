@@ -65,7 +65,7 @@ Bỏ qua được các bước tốn thời gian nhất. Tải từ cùng thư m
 | `vibiomir_emb.tar` → `emb/` | Vector BGE-M3 (~3 giờ GPU) | 2,4 GB |
 | `vibiomir_results.tar` → `results/` | 9 lượt tìm, vector đoạn BGE-M3 (`chunk_cache.pkl`) | ~3,6 GB |
 
-**Link Google Drive:** `<LINK_GOOGLE_DRIVE>` · Kiểm tra toàn vẹn: `sha256sum -c SHA256SUMS`.
+**Link Google Drive:** `<https://drive.google.com/drive/folders/1zoATII9wMD3SAhux7n9Cu49K1jRjEwYQ?usp=sharing>` · Kiểm tra toàn vẹn: `sha256sum -c SHA256SUMS`.
 
 Đã có sẵn trong repo (không cần tải): `results/queries_translated.jsonl` (bản dịch câu hỏi),
 `results/D_bi02.jsonl` (danh sách ứng viên của bài nộp), `results/qwen_rerank_cache_q3r4B_passage.pkl` và

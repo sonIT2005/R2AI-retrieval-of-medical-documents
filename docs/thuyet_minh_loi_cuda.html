@@ -16,7 +16,7 @@ a { color: #1a4a8c; text-decoration: none; }
 .fig { margin: 8pt 0; page-break-inside: avoid; } .cap { text-align: center; font-size: 9.5pt; font-style: italic; }
 </style></head><body>
 <h1>Tài liệu thuyết minh sản phẩm<br><span class="sub">R2AI 2026 · Stage 3 · ViBioMIR — đội loi_cuda</span></h1>
-<p class="meta">Mã nguồn: <a href="https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents">https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents</a> · Dữ liệu: &lt;LINK_GOOGLE_DRIVE&gt;</p>
+<p class="meta">Mã nguồn: <a href="https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents">https://github.com/sonIT2005/R2AI-retrieval-of-medical-documents</a> · Dữ liệu: https://drive.google.com/drive/folders/1zoATII9wMD3SAhux7n9Cu49K1jRjEwYQ?usp=sharing</p>
 
 <h2>1.1. Tổng quan hệ thống</h2>
 <p><b>Bài toán.</b> Với mỗi câu hỏi y khoa tiếng Việt, trả về danh sách tài liệu liên quan (doc_id trong danh sách
@@ -58,7 +58,7 @@ trích xuất dùng toàn bộ chữ trong thân trang (bỏ script, nav, header
 <li>Phân đoạn khi tạo file nộp: gom dòng tới ~1.000 ký tự (Trung ~500), mỗi đoạn là lát cắt nguyên văn của văn bản.</li>
 </ul>
 <h3>Hướng dẫn truy cập</h3>
-<p>Google Drive: &lt;LINK_GOOGLE_DRIVE&gt; — giải nén từ thư mục gốc repo bằng <code>tar -xf &lt;file&gt;.tar</code>, kiểm tra bằng
+<p>Google Drive: https://drive.google.com/drive/folders/1zoATII9wMD3SAhux7n9Cu49K1jRjEwYQ?usp=sharing — giải nén từ thư mục gốc repo bằng <code>tar -xf &lt;file&gt;.tar</code>, kiểm tra bằng
 <code>sha256sum -c SHA256SUMS</code>.</p>
 <table><colgroup><col style="width:26%"><col style="width:52%"><col style="width:22%"></colgroup><thead><tr><th>File</th><th>Nội dung</th><th>Bắt buộc?</th></tr></thead><tbody><tr><td>vibiomir_db_extra.tar</td><td>vibiomir_s3/db_extra/ — crawl bổ sung của đội (6,1 GB)</td><td>Có</td></tr><tr><td>vibiomir_clean_corpus.tar</td><td>clean/corpus/ — văn bản đã làm sạch (1,5 GB)</td><td>Không (thay bước làm sạch)</td></tr><tr><td>vibiomir_emb.tar</td><td>emb/ — vector BGE-M3 (2,4 GB)</td><td>Không (thay bước tạo vector)</td></tr><tr><td>vibiomir_results.tar</td><td>results/: 9 lượt tìm, vector đoạn BGE-M3 (~3,6 GB)</td><td>Không (thay ~1 giờ GPU)</td></tr></tbody></table>
 <p>Dữ liệu dùng chung tải bằng: <code>hf download snute/ai_guru-S3 --repo-type dataset --local-dir vibiomir_s3</code> và
