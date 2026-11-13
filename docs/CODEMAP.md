@@ -18,6 +18,8 @@ Câu hỏi Việt → 9 lượt tìm theo ngôn ngữ (BM25 từ đơn + cặp �
 | dyn_cut.py | D_*.jsonl → DC_*.jsonl: số tài liệu theo câu (ngưỡng tau·top-1, dò tau theo --mean) | — | |
 | make_submission.py | DC_*.jsonl → chunk + chọn đoạn (BGE-M3) → submissions/sub_*.zip | results/chunk_cache.pkl | tự kiểm định dạng; ZIP phải < 100 MB |
 | scripts/crawl/ | find_missing.py, crawl_*.py: crawl bổ sung | curl_cffi, aiohttp | xong, chỉ tham khảo |
+| tools/build_demo_data.py | file nộp (submissions/sub_prr_m140.zip) + clean/corpus → web/data/questions.json + q/<id>.json | pyarrow | thiếu file nộp → dự phòng D_bi02 (chưa rerank, không đoạn trích) |
+| web/ | Web demo tĩnh (taste-skill): index.html + app/{search,upload,i18n,bm25}.js, pdf.js trong vendor/ | web/assets (kit, không vào git), web/data | chạy: `python -m http.server 8000 -d web` |
 
 ## Luồng dữ liệu
 vibiomir_s3/ → clean/corpus → emb/ + index/bm25 → results/run_* → D_* → DC_* → submissions/

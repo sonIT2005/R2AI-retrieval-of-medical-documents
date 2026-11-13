@@ -1,4 +1,4 @@
-# PROGRESS — cập nhật: 2026-10-27 12:00 bởi claude
+# PROGRESS — cập nhật: 2026-11-13 bởi claude
 > File này là "bộ nhớ" của dự án. Hook SessionStart tự nạp nó sau mỗi lần mở phiên / compact / clear.
 > Giữ ngắn (< 80 dòng). Ghi đè thay vì viết thêm.
 
@@ -17,7 +17,11 @@
 | — | 0,3365 | id 7238 | exp-041 | k=60, vi-share 0,7 (`results/D_wide_son.jsonl`) |
 | — | 0,3193 | id 7095 | exp-040 | D_wide trên máy Nguyen — kém D_wide_son cùng pipeline, chưa rõ vì sao (xem Vướng mắc) |
 
-## Đang làm (03/11 — vòng private, hạn 04/11 23:59)
+## Đang làm (13/11 — cuộc thi đã xong; kết quả private 0,3601, người dùng báo)
+- Web demo trình bày (chạy local): `web/` theo taste-skill (gate PASS 13/11). Chạy `python -m http.server 8000 -d web`.
+  CHỜ dữ liệu thật: chép `submissions/sub_prr_m140.zip` + `clean/corpus/` sang máy này rồi `python tools/build_demo_data.py`
+  (hiện là dữ liệu dự phòng D_bi02: chưa rerank, chưa có tiêu đề/đoạn trích). Không ghi điểm private lên web (ý người dùng).
+- Slide: slides/slides.tex (Beamer, XeLaTeX) + slides/slides.pptx — chưa điền tên thành viên.
 - Lượt private 1: sub_prr_m140 (0,3606 public). Lượt 2: **sub_ens_m140** (gộp Qwen3-Reranker-4B + 8B; bộ dò +0,0051 ≈ +0,0015 LB).
   Tái tạo: `CAND=results/D_bi02.jsonl RERANK=ens ./build_submission.sh ens_m140` (khớp từng byte).
 - Tài liệu thuyết minh BTC (hạn 04/11 23:59): README.md + docs/thuyet_minh_loi_cuda.pdf xong; còn: chạy tools/pack_data.sh,
